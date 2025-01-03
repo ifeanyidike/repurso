@@ -1,0 +1,8 @@
+
+torch
+torchvision 
+torchaudio
+
+git+https://github.com/m-bain/whisperX.git
+facenet-pytorch
+pyannote.audio

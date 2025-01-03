@@ -1,0 +1,328 @@
+syntax = "proto3";
+
+package media_analysis;
+
+option go_package = "./proto";
+
+// MediaAnalysisService provides various AI-powered analysis features for media content
+service MediaAnalysisService {
+//    rpc AnalyzeAudio(AudioAnalysisRequest) returns (AudioAnalysisResponse);
+//     rpc AnalyzeVideo(VideoAnalysisRequest) returns (VideoAnalysisResponse);
+
+    rpc GenerateTranscript(TranscriptRequest) returns (TranscriptResponse);
+    rpc DetectKeyMoments(KeyMomentsRequest) returns (KeyMomentsResponse);
+    rpc AnalyzeTopics(TopicAnalysisRequest) returns (TopicAnalysisResponse);
+    rpc AnalyzeSentiment(SentimentRequest) returns (SentimentResponse);
+    rpc GenerateChapters(ChapterRequest) returns (ChapterResponse);
+    rpc GenerateSummary(SummaryRequest) returns (SummaryResponse);
+    
+   
+    rpc GenerateShortForm(ShortFormRequest) returns (ShortFormResponse);
+    rpc ExtractQuotes(QuoteExtractionRequest) returns (QuoteExtractionResponse);
+    rpc GenerateMetadata(MetadataRequest) returns (MetadataResponse);
+    rpc DetectSoundscape(SoundscapeRequest) returns (SoundscapeResponse);
+    rpc AnalyzeEngagement(EngagementRequest) returns (EngagementResponse);
+    rpc DetectFaceEmotions(FaceEmotionRequest) returns (FaceEmotionResponse);
+    rpc GenerateContentWarnings(ContentWarningRequest) returns (ContentWarningResponse);
+}
+
+message BaseRequest {
+    string media_url = 1;
+    string bucket = 2;
+    MediaType media_type = 3;
+}
+
+enum MediaType {
+    MEDIA_TYPE_UNSPECIFIED = 0;
+    AUDIO = 1;
+    VIDEO = 2;
+}
+
+message TranscriptRequest {
+    BaseRequest base = 1;
+    string language_code = 2;
+    bool enable_speaker_diarization = 3;
+}
+
+message TranscriptResponse {
+    string transcript_url = 1;
+    // repeated SpeakerSegment segments = 2;
+    string error = 3;
+}
+
+message SpeakerSegment {
+    string speaker_id = 1;
+    string text = 2;
+    float start_time = 3;
+    float end_time = 4;
+    float confidence = 5;
+}
+
+// enum KeyMomentType {
+//     KEY_MOMENT_TYPE_UNSPECIFIED = 0;
+//     EMOTIONAL = 1;
+//     INSPIRATIONAL = 2;
+//     THEMATIC = 3;
+//     ACTION = 4;
+//     TRANSITION = 5;
+//     INTRODUCTION = 6;
+//     CLOSING = 7;
+//     EXPERTISE = 8;
+//     ENGAGEMENT = 9;
+//     STORY_TELLING = 10;
+//     CALL_TO_ACTION = 11;
+//     GRATITUDE = 12;
+//     HUMOR = 13;
+//     CONFUSION = 14;
+//     ACKNOWLEDGEMENT = 15;
+//     ACHIEVEMENT = 16;
+// }
+
+message KeyMomentsRequest {
+    BaseRequest base = 1;
+    repeated string moment_types = 2;
+    float min_segment_duration = 3;
+}
+
+message KeyMoment {
+    string text = 1;
+    float start = 2;
+    float end = 3;
+    string type = 4;
+    float confidence = 5;
+    float validation_score = 6;
+    // repeated string tags = 6;
+}
+
+message KeyMomentsResponse {
+    repeated KeyMoment moments = 1;
+    string error = 2;
+}
+
+message TopicAnalysisRequest {
+    BaseRequest base = 1;
+    int32 max_topics = 2;
+}
+
+message Topic {
+    string name = 1;
+    repeated float timestamps = 2;  // when this topic appears
+    float relevance_score = 3;
+    repeated string related_terms = 4;
+}
+
+message TopicAnalysisResponse {
+    repeated Topic topics = 1;
+    string error = 2;
+}
+
+message SentimentRequest {
+    BaseRequest base = 1;
+    float segment_interval = 2;  // analyze sentiment every X seconds
+}
+
+message SentimentSegment {
+    float start_time = 1;
+    float end_time = 2;
+    float positive_score = 3;
+    float negative_score = 4;
+    float neutral_score = 5;
+    repeated string emotion_labels = 6;
+}
+
+message SentimentResponse {
+    repeated SentimentSegment segments = 1;
+    string error = 2;
+}
+
+message ChapterRequest {
+    BaseRequest base = 1;
+    int32 min_chapter_count = 2;
+    int32 max_chapter_count = 3;
+}
+
+message Chapter {
+    string title = 1;
+    string description = 2;
+    float start_time = 3;
+    float end_time = 4;
+    repeated string keywords = 5;
+}
+
+message ChapterResponse {
+    repeated Chapter chapters = 1;
+    string error = 2;
+}
+
+message SummaryRequest {
+    BaseRequest base = 1;
+    enum SummaryType {
+        SUMMARY_TYPE_UNSPECIFIED = 0;
+        BRIEF = 1;
+        DETAILED = 2;
+        BULLET_POINTS = 3;
+    }
+    SummaryType summary_type = 2;
+}
+
+message SummaryResponse {
+    string summary = 1;
+    repeated string key_points = 2;
+    string error = 3;
+}
+
+message ShortFormRequest {
+    BaseRequest base = 1;
+    repeated Platform target_platforms = 2;
+    int32 desired_duration_seconds = 3;
+    repeated string focus_keywords = 4;
+}
+
+enum Platform {
+    PLATFORM_UNSPECIFIED = 0;
+    TIKTOK = 1;
+    INSTAGRAM_REELS = 2;
+    YOUTUBE_SHORTS = 3;
+    SNAPCHAT = 4;
+    X = 5;
+}
+
+message ShortFormResponse {
+    repeated ShortFormClip clips = 1;
+    string error = 2;
+}
+
+message ShortFormClip {
+    float start_time = 1;
+    float end_time = 2;
+    string suggested_caption = 3;
+    repeated string suggested_hashtags = 4;
+    Platform recommended_platform = 5;
+    float engagement_score = 6;
+}
+
+message QuoteExtractionRequest {
+    BaseRequest base = 1;
+    bool include_context = 2;
+    float min_quote_length_seconds = 3;
+}
+
+message Quote {
+    string text = 1;
+    float start_time = 2;
+    float end_time = 3;
+    string speaker = 4;
+    string context = 5;
+    float impact_score = 6;
+}
+
+message QuoteExtractionResponse {
+    repeated Quote quotes = 1;
+    string error = 2;
+}
+
+message MetadataRequest {
+    BaseRequest base = 1;
+    bool analyze_visual = 2;
+    bool analyze_audio = 3;
+}
+
+message Metadata {
+    repeated string suggested_tags = 1;
+    repeated string categories = 2;
+    string content_rating = 3;
+    string language = 4;
+    repeated string detected_brands = 5;
+    repeated string detected_locations = 6;
+    map<string, string> technical_info = 7;
+    repeated string content_warnings = 8;
+}
+
+message MetadataResponse {
+    Metadata metadata = 1;
+    string error = 2;
+}
+
+message SoundscapeRequest {
+    BaseRequest base = 1;
+    bool detect_music = 2;
+    bool detect_ambient = 3;
+    bool detect_effects = 4;
+}
+
+message SoundElement {
+    string type = 1;
+    float start_time = 2;
+    float end_time = 3;
+    float confidence = 4;
+    string description = 5;
+    map<string, float> attributes = 6;
+}
+
+message SoundscapeResponse {
+    repeated SoundElement elements = 1;
+    float background_noise_level = 2;
+    repeated string music_genres = 3;
+    string audio_quality_score = 4;
+    string error = 5;
+}
+
+message EngagementRequest {
+    BaseRequest base = 1;
+    float segment_interval = 2;
+}
+
+message EngagementMetrics {
+    float start_time = 1;
+    float end_time = 2;
+    float attention_score = 3;
+    float emotional_impact = 4;
+    float memorability_score = 5;
+    repeated string engagement_factors = 6;
+}
+
+message EngagementResponse {
+    repeated EngagementMetrics segments = 1;
+    float overall_engagement_score = 2;
+    repeated string improvement_suggestions = 3;
+    string error = 4;
+}
+
+message FaceEmotionRequest {
+    BaseRequest base = 1;
+    float sampling_rate = 2;  // analysis frequency in seconds
+    bool track_individuals = 3;
+}
+
+message FaceEmotion {
+    string person_id = 1;  // if tracking individuals
+    float start_time = 2;
+    float end_time = 3;
+    map<string, float> emotion_scores = 4;
+    repeated string detected_expressions = 5;
+}
+
+message FaceEmotionResponse {
+    repeated FaceEmotion emotions = 1;
+    map<string, string> person_descriptions = 2;  // if tracking individuals
+    string error = 3;
+}
+
+message ContentWarningRequest {
+    BaseRequest base = 1;
+    repeated string custom_categories = 2;
+}
+
+message ContentWarning {
+    string category = 1;
+    float severity = 2;
+    repeated float timestamps = 3;
+    string description = 4;
+}
+
+message ContentWarningResponse {
+    repeated ContentWarning warnings = 1;
+    string age_rating = 2;
+    repeated string viewer_advisories = 3;
+    string error = 4;
+}

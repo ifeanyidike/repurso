@@ -1,0 +1,25 @@
+# Core ML packages
+numpy
+scipy
+requests
+Pillow
+pandas
+transformers
+openai-whisper
+librosa
+moviepy
+ultralytics
+opencv-python
+ffmpeg-python
+pytesseract
+scikit-learn
+grpcio
+grpcio-tools
+protobuf
+boto3
+spacy==3.8.3
+accelerate
+langchain
+openai
+anthropic
+soundfile

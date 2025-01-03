@@ -1,0 +1,28 @@
+.timeline-editor-cursor {
+  cursor: ew-resize;
+  position: absolute;
+  top: 32px;
+  height: calc(100% - 32px);
+  box-sizing: border-box;
+  border-left: 1px solid #5297ff;
+  border-right: 1px solid #5297ff;
+  transform: translateX(-25%) scaleX(0.5);
+}
+
+.timeline-editor-cursor-top {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, 0) scaleX(2);
+  margin: auto;
+}
+
+.timeline-editor-cursor-area {
+  width: 16px;
+  height: 100%;
+  cursor: ew-resize;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}

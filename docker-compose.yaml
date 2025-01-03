@@ -1,0 +1,171 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - 3000:3000
+    volumes:
+      - ./frontend:/usr/src/app
+      # - ./frontend/node_modules:/usr/src/app/node_modules
+    # volumes:
+    #   - type: bind
+    #     source: ./frontend
+    #     target: /app
+    tty: true
+    depends_on:
+      - api-server
+    # command: ["yarn", "dev"] # Run yarn dev to start the frontend server
+    command: ["yarn", "vite", "--host"]
+
+  api-server:
+    build:
+      context: ./api-server
+      dockerfile: Dockerfile.dev # Use Dockerfile.dev for development environment
+      # target: dev-env
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./api-server/.env # Load environment variables specific to API service
+    volumes:
+      - ./api-server:/src
+      - ~/.aws:/root/.aws:ro
+    # volumes:
+    #   - ./api-server:/app # Mount the API service code for live reload (development only)
+    depends_on:
+      - postgres
+      # postgres:
+      #   condition: service_healthy
+    # command: ["go", "run", "main.go"] # Adjust this command as per your API service start command
+    # command: ["/app/api"] # Run the pre-built binary
+    # command: ["sh", "-c", "go run /src/main.go"]
+    command: ["air", "-c", ".air.toml"]
+
+  ai-service:
+    build:
+      context: ./ai-service
+    ports:
+      - "50051:50051"
+    env_file:
+      - ./ai-service/.env # Load environment variables specific to AI service
+    depends_on:
+      - api-server
+
+    # command:
+    #   [
+    #     "uvicorn",
+    #     "main:app",
+    #     "--host",
+    #     "0.0.0.0",
+    #     "--port",
+    #     "50051",
+    #     "--reload",
+    #   ]
+    command: ["python3", "main.py"]
+
+  #   # Uvicorn command to start FastAPI app (change if different)
+
+  # ai-service:
+  #   build:
+  #     context: ./ai-service
+  #     args:
+  #       - USE_CUDA=${USE_CUDA:-false}
+  #   platform: ${PLATFORM:-linux/amd64} # Default to AMD64 for cloud compatibility
+  #   ports:
+  #     - "50051:50051"
+  #   env_file:
+  #     - ./ai-service/.env
+  #   volumes:
+  #     - ./ai-service:/app
+  #     - ${HOME}/.cache/torch:/root/.cache/torch
+  #     - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #   depends_on:
+  #     - api-server
+  #   command: ["python3", "main.py"]
+
+  postgres:
+    image: postgres:latest # PostgreSQL as the database
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_PASSWORD: "${BS_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
+      # POSTGRES_USER: "ifeanyidike"
+      # POSTGRES_PASSWORD: "frosty"
+      # POSTGRES_DB: "repursodb"
+    volumes:
+      - dbdata:/var/lib/postgresql/data # Persist database data
+    # healthcheck:
+    #   test: ["CMD-SHELL", "pg_isready -U ifeanyidike"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+
+volumes:
+  dbdata:
+# services:
+#   frontend:
+#     build:
+#       context: ./frontend
+#     ports:
+#       - 3000:3000
+#     volumes:
+#       - ./frontend:/usr/src/app
+#     tty: true
+#     depends_on:
+#       - api-server
+#     command: ["yarn", "vite", "--host"]
+
+#   api-server:
+#     build:
+#       context: ./api-server
+#       dockerfile: Dockerfile.dev
+#     ports:
+#       - "8080:8080"
+#     env_file:
+#       - ./api-server/.env
+#     volumes:
+#       - ./api-server:/src
+#       - ~/.aws:/root/.aws:ro
+#     depends_on:
+#       - postgres
+#     command: ["air", "-c", ".air.toml"]
+
+#   ai-service:
+#     build:
+#       context: ./ai-service
+#     ports:
+#       - "50051:50051"
+#     env_file:
+#       - ./ai-service/.env
+#     volumes:
+#       - ./ai-service:/app
+#       - ${HOME}/.cache/torch:/root/.cache/torch
+#       - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+#     environment:
+#       - PYTHONUNBUFFERED=1
+#       - USE_GPU=auto
+#     depends_on:
+#       - api-server
+#     profiles:
+#       - gpu
+#       - default
+#     command: ["python3", "main.py"]
+
+#   postgres:
+#     image: postgres:latest
+#     container_name: postgres
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_USER: "${DB_USERNAME}"
+#       POSTGRES_PASSWORD: "${BS_PASSWORD}"
+#       POSTGRES_DB: "${DB_NAME}"
+#     volumes:
+#       - dbdata:/var/lib/postgresql/data
+
+# volumes:
+#   dbdata:

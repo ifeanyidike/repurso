@@ -1,0 +1,94 @@
+# Base image with Go and Air preinstalled
+# FROM golang:1.23.1-alpine
+
+# # Set the working directory
+# WORKDIR /app
+
+# RUN go install github.com/air-verse/air@latest
+
+# # Copy Go module files and download dependencies
+# COPY go.mod go.sum ./
+# RUN go mod download
+
+# # Copy the rest of the application files
+# COPY . .
+
+# # Expose the port
+# EXPOSE 8080
+
+# # Command to run Air
+# CMD ["air", "-c", ".air.toml"]
+
+# Build stage
+# FROM golang:1.23.1-alpine AS builder
+
+# # Set the working directory
+# WORKDIR /app
+
+# # Install dependencies and Air
+# RUN apk add --no-cache git bash && \
+#         go install github.com/air-verse/air@latest
+
+# # Copy Go module files and download dependencies
+# COPY go.mod go.sum ./
+# RUN go mod download
+
+# # Copy the rest of the application files
+# COPY . .
+
+# # Build the Go application (not necessary for Air but good for production)
+# # RUN go build -o /app/api cmd/api/main.go
+
+# # Final stage (runtime image)
+# FROM alpine:3.18
+
+# # Install ffmpeg and audiowaveform
+# RUN apk add --no-cache ffmpeg \
+#     && apk add --no-cache --virtual .build-deps curl \
+#     && curl -L https://github.com/bbc/audiowaveform/releases/download/v1.8.4/audiowaveform-1.8.4-linux-x86_64.tar.gz \
+#     | tar -xz -C /usr/local/bin --strip-components=1 audiowaveform-1.8.4-linux-x86_64/audiowaveform \
+#     && apk del .build-deps
+
+# # Copy the built Go application from the builder stage
+# COPY --from=builder /app/api /app/api
+
+# # Copy application files for Air to use
+# COPY --from=builder /app /app
+
+# # Expose the port
+# EXPOSE 8080
+
+# # Set the working directory
+# WORKDIR /app
+
+# # Run Air for live reloading during development
+# CMD ["air", "-c", ".air.toml"]
+
+# Stage 1: Use the official audiowaveform image
+FROM realies/audiowaveform as audiowaveform-builder
+
+# Stage 2: Build the Go application with FFmpeg
+FROM golang:1.23.1-alpine
+
+# Set the working directory
+WORKDIR /app
+
+# Install FFmpeg and Air for development
+RUN apk add --no-cache ffmpeg && \
+    go install github.com/air-verse/air@latest
+
+# Copy Go module files and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application files
+COPY . .
+
+# Expose the port
+EXPOSE 8080
+
+# Copy audiowaveform binary from the builder stage
+COPY --from=audiowaveform-builder /usr/local/bin/audiowaveform /usr/local/bin/
+
+# Command to run Air
+CMD ["air", "-c", ".air.toml"]
