@@ -89,7 +89,18 @@ func (us *UploadService) ProcessUpload(ctx context.Context, file multipart.File,
 			UpdatedAt:       time.Now(),
 		}
 
-		err := us.Repo.CreateVideo(ctx, *params)
+		id, err := us.Repo.CreateVideo(ctx, *params)
+
+		job := &TranscriptionJob{
+			ID:       "1",
+			Bucket:   bucket,
+			AudioURL: result.AudioFile,
+			VideoID:  id,
+			ClientID: projectId,
+		}
+		if err := us.jobProcessor.EnqueueJob(job); err != nil {
+			return nil, fmt.Errorf("failed to enqueue transcription job: %v", err)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to save upload details: %v", err)
 		}

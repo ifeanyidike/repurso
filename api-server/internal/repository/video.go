@@ -11,12 +11,12 @@ import (
 	"github.com/ifeanyidike/improv/internal/types"
 )
 
-func (repo *repo) CreateVideo(ctx context.Context, params types.VideoInsertParams) error {
+func (repo *repo) CreateVideo(ctx context.Context, params types.VideoInsertParams) (string, error) {
 	var id string
 	// Start a database transaction
 	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Insert Video
@@ -38,7 +38,7 @@ func (repo *repo) CreateVideo(ctx context.Context, params types.VideoInsertParam
 				bitrate
 			)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-
+				returning id
 		`
 	err = tx.QueryRowContext(ctx, query,
 		params.ProjectID,
@@ -58,18 +58,18 @@ func (repo *repo) CreateVideo(ctx context.Context, params types.VideoInsertParam
 
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert video: %w", err)
+		return "", fmt.Errorf("failed to insert video: %w", err)
 	}
 
 	// Insert into fabric_videos
 	_, err = tx.ExecContext(ctx, "INSERT INTO fabric_videos(video_id, duration) VALUES ($1, $2)", id, params.Duration)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert fabric video: %w", err)
+		return "", fmt.Errorf("failed to insert fabric video: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return "", fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	cacheKey := fmt.Sprintf("video:%s", id)
@@ -94,7 +94,7 @@ func (repo *repo) CreateVideo(ctx context.Context, params types.VideoInsertParam
 	}
 	storeToCache(ctx, repo.redis, video_data, cacheKey)
 
-	return nil
+	return id, nil
 }
 
 func (repo *repo) GetVideos(ctx context.Context, project_id string) (*[]types.VideosGetParams, error) {

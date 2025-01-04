@@ -19,6 +19,8 @@ type UploadServicer interface {
 	AutoSaveVideo(ctx context.Context, bucket, videoID string, updates *types.VideoGetParams) error
 	GenerateTranscript(ctx context.Context, bucket, videoId string) (string, error)
 	GetKeyMoments(ctx context.Context, bucket, videoId string, moment string) ([]*pb.KeyMoment, error)
+	SetJobProcessor(processor JobProcessor)
+	SampleJob(context.Context)
 }
 
 type UploadService struct {
@@ -28,6 +30,7 @@ type UploadService struct {
 	AudioWaveformService AudioWaveformServicer
 	grpcClient           *proto.MediaAnalysisServiceClient
 	ctx                  context.Context
+	jobProcessor         JobProcessor
 	// grpcService          GrpcServicer
 }
 
@@ -52,7 +55,15 @@ type ImageUploadResult struct {
 	WaveformFile string              `json:"waveformFile"`
 }
 
-func NewUploadService(repo repository.Repo, awsService AWSService, ffmpegService FFmpegServicer, waveformService AudioWaveformServicer, grpcClient *proto.MediaAnalysisServiceClient, ctx context.Context) UploadServicer {
+func NewUploadService(
+	repo repository.Repo,
+	awsService AWSService,
+	ffmpegService FFmpegServicer,
+	waveformService AudioWaveformServicer,
+	grpcClient *proto.MediaAnalysisServiceClient,
+	ctx context.Context,
+	jobProcessor JobProcessor,
+) UploadServicer {
 	return &UploadService{
 		Repo:                 repo,
 		AWSService:           awsService,
@@ -60,5 +71,10 @@ func NewUploadService(repo repository.Repo, awsService AWSService, ffmpegService
 		AudioWaveformService: waveformService,
 		grpcClient:           grpcClient,
 		ctx:                  ctx,
+		jobProcessor:         jobProcessor,
 	}
+}
+
+func (s *UploadService) SetJobProcessor(processor JobProcessor) {
+	s.jobProcessor = processor
 }

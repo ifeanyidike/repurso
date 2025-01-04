@@ -49,7 +49,7 @@ func (app *Application) Mount() http.Handler {
 	router.Use(gin.Recovery())
 	router.Use(gin.Logger())
 
-	appUpload := app.InitUploadTransport()
+	appUpload, notificationCtl := app.InitUploadTransport()
 	appUser := app.InitUserTransport()
 
 	v1 := router.Group("/v1")
@@ -67,6 +67,7 @@ func (app *Application) Mount() http.Handler {
 			video.GET("/:videoId", appUser.GetVideo)
 			video.PUT("/transcript/generate/:videoId", appUpload.GenerateTranscript)
 			video.GET("/keymoments/:videoId/:moment", appUpload.GetKeyMoments)
+			video.GET("/samplejob", appUpload.TriggerSampleJob)
 		}
 
 		projects := v1.Group("/projects")
@@ -79,6 +80,7 @@ func (app *Application) Mount() http.Handler {
 		v1.POST("/register", appUser.RegisterUser)
 
 		v1.GET("/health", app.healthCheckHandler)
+		notificationCtl.RegisterRoutes(v1)
 
 	}
 

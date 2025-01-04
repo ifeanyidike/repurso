@@ -14,7 +14,7 @@ type Repo interface {
 	FindUserByAuth0ID(ctx context.Context, auth0ID string) (*types.User, error)
 	CreateUser(ctx context.Context, auth0ID, email, name, picture string, email_verified bool) error
 	CreateProject(ctx context.Context, t types.ProjectInsertParams) (string, error)
-	CreateVideo(ctx context.Context, t types.VideoInsertParams) error
+	CreateVideo(ctx context.Context, t types.VideoInsertParams) (string, error)
 	GetProjects(ctx context.Context, userID string) (*[]types.ProjectGetParams, error)
 	GetVideos(ctx context.Context, project_id string) (*[]types.VideosGetParams, error)
 	GetVideo(ctx context.Context, video_id string) (*types.VideoGetParams, error)

@@ -220,3 +220,10 @@ func (uc *UploadController) GetKeyMoments(c *gin.Context) {
 	}
 	utils.RespondJSON(c, http.StatusOK, gin.H{"message": "Key moments successfully generated", "moments": keyMoments})
 }
+
+func (uc *UploadController) TriggerSampleJob(c *gin.Context) {
+
+	uc.UploadService.SampleJob(c)
+
+	utils.RespondJSON(c, http.StatusOK, gin.H{"message": "Triggered smaple job"})
+}

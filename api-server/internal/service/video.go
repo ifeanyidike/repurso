@@ -286,3 +286,18 @@ func (u *UploadService) GetKeyMoments(ctx context.Context, bucket, videoId strin
 
 	return res.Moments, nil
 }
+
+func (u *UploadService) SampleJob(ctx context.Context) {
+	job := &TranscriptionJob{
+		ID:       "1",
+		Bucket:   "1234",
+		AudioURL: "my-audio-url",
+		VideoID:  "vid123",
+		ClientID: "project123",
+	}
+
+	fmt.Println("triggered sample job: ", job)
+	if err := u.jobProcessor.EnqueueJob(job); err != nil {
+		fmt.Printf("failed to enqueue transcription job: %v", err)
+	}
+}
