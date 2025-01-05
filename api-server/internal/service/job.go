@@ -260,38 +260,27 @@ func (p *BackgroundProcessor) ProcessJob(ctx context.Context, job Job) error {
 				Err:   err,
 			}
 		}
-		notification.Status = "completed"
-		notification.Data = <-result
-		notification.Time = time.Now()
-
-		if err := p.notifyWithRetry(notification, 3); err != nil {
-			log.Printf("Failed to send completion notification for job %s: %v", job.GetClientID(), err)
-		}
-
-		// Update success metrics
-		atomic.AddInt64(&p.metrics.completedJobs, 1)
-		p.metrics.mu.Lock()
-		p.metrics.processingTime += time.Since(startTime)
-		p.metrics.mu.Unlock()
-
-		return nil
+		return p.handleProcessingSuccess(notification, job, result, startTime)
 	case <-done:
 		log.Println("process completed without errors")
-		notification.Status = "completed"
-		notification.Data = <-result
-		notification.Time = time.Now()
+		return p.handleProcessingSuccess(notification, job, result, startTime)
+	}
+}
 
-		if err := p.notifyWithRetry(notification, 3); err != nil {
-			log.Printf("Failed to send completion notification for job %s: %v", job.GetClientID(), err)
-		}
+func (p *BackgroundProcessor) handleProcessingSuccess(notification Notification, job Job, result chan interface{}, startTime time.Time) error {
+	notification.Status = "completed"
+	notification.Data = <-result
+	notification.Time = time.Now()
 
-		// Update success metrics
-		atomic.AddInt64(&p.metrics.completedJobs, 1)
-		p.metrics.mu.Lock()
-		p.metrics.processingTime += time.Since(startTime)
-		p.metrics.mu.Unlock()
-		log.Println("metric updated successfully")
-		return nil
+	if err := p.notifyWithRetry(notification, 3); err != nil {
+		log.Printf("Failed to send completion notification for job %s: %v", job.GetClientID(), err)
 	}
 
+	// Update success metrics
+	atomic.AddInt64(&p.metrics.completedJobs, 1)
+	p.metrics.mu.Lock()
+	p.metrics.processingTime += time.Since(startTime)
+	p.metrics.mu.Unlock()
+	log.Println("metric updated successfully")
+	return nil
 }

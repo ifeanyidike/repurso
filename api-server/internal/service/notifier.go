@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NotificationType and other type definitions remain the same
 type NotificationType string
 
 type Notifier interface {
@@ -28,7 +27,6 @@ const (
 	TypeHeartbeat NotificationType = "heartbeat"
 )
 
-// Notification struct remains the same
 type Notification struct {
 	Type     NotificationType `json:"type"`
 	JobID    string           `json:"job_id"`
@@ -40,15 +38,15 @@ type Notification struct {
 }
 
 type NotificationService struct {
-	wsClients     map[string]map[*WebSocketClient]bool
-	wsRegister    chan *WebSocketClient
-	wsUnregister  chan *WebSocketClient
-	sseClients    map[string]map[chan Notification]bool
-	sseRegister   chan *SSEClient
-	sseUnregister chan *SSEClient
-	notifications chan Notification
-	stop          chan struct{}
-	mu            sync.RWMutex
+	wsClients      map[string]map[*WebSocketClient]bool
+	wsSubscribe    chan *WebSocketClient
+	wsUnsubscribe  chan *WebSocketClient
+	sseClients     map[string]map[chan Notification]bool
+	sseSubscribe   chan *SSEClient
+	sseUnsubscribe chan *SSEClient
+	notifications  chan Notification
+	stop           chan struct{}
+	mu             sync.RWMutex
 }
 
 type WebSocketClient struct {
@@ -75,14 +73,14 @@ var upgrader = websocket.Upgrader{
 // NewNotificationService creates a new service instance
 func NewNotificationService() *NotificationService {
 	return &NotificationService{
-		wsClients:     make(map[string]map[*WebSocketClient]bool),
-		wsRegister:    make(chan *WebSocketClient),
-		wsUnregister:  make(chan *WebSocketClient),
-		sseClients:    make(map[string]map[chan Notification]bool),
-		sseRegister:   make(chan *SSEClient),
-		sseUnregister: make(chan *SSEClient),
-		notifications: make(chan Notification, 1000),
-		stop:          make(chan struct{}),
+		wsClients:      make(map[string]map[*WebSocketClient]bool),
+		wsSubscribe:    make(chan *WebSocketClient),
+		wsUnsubscribe:  make(chan *WebSocketClient),
+		sseClients:     make(map[string]map[chan Notification]bool),
+		sseSubscribe:   make(chan *SSEClient),
+		sseUnsubscribe: make(chan *SSEClient),
+		notifications:  make(chan Notification, 1000),
+		stop:           make(chan struct{}),
 	}
 }
 
@@ -94,7 +92,7 @@ func (h *NotificationService) Start(ctx context.Context) {
 				close(h.stop)
 				return
 
-			case client := <-h.wsRegister:
+			case client := <-h.wsSubscribe:
 				h.mu.Lock()
 				if _, exists := h.wsClients[client.clientID]; !exists {
 					h.wsClients[client.clientID] = make(map[*WebSocketClient]bool)
@@ -103,7 +101,7 @@ func (h *NotificationService) Start(ctx context.Context) {
 				h.mu.Unlock()
 				log.Printf("WebSocket client registered: %s", client.clientID)
 
-			case client := <-h.wsUnregister:
+			case client := <-h.wsUnsubscribe:
 				h.mu.Lock()
 				if clients, exists := h.wsClients[client.clientID]; exists {
 					if _, ok := clients[client]; ok {
@@ -117,7 +115,7 @@ func (h *NotificationService) Start(ctx context.Context) {
 				h.mu.Unlock()
 				log.Printf("WebSocket client unregistered: %s", client.clientID)
 
-			case client := <-h.sseRegister:
+			case client := <-h.sseSubscribe:
 				h.mu.Lock()
 				if _, exists := h.sseClients[client.clientID]; !exists {
 					h.sseClients[client.clientID] = make(map[chan Notification]bool)
@@ -125,7 +123,7 @@ func (h *NotificationService) Start(ctx context.Context) {
 				h.sseClients[client.clientID][client.send] = true
 				h.mu.Unlock()
 
-			case client := <-h.sseUnregister:
+			case client := <-h.sseUnsubscribe:
 				h.mu.Lock()
 				if clients, exists := h.sseClients[client.clientID]; exists {
 					if _, ok := clients[client.send]; ok {
@@ -165,7 +163,7 @@ func (h *NotificationService) broadcast(notification Notification) {
 			case client.send <- notification:
 			default:
 				go func(c *WebSocketClient) {
-					h.wsUnregister <- c
+					h.wsUnsubscribe <- c
 				}(client)
 			}
 		}
@@ -178,7 +176,7 @@ func (h *NotificationService) broadcast(notification Notification) {
 			case clientChan <- notification:
 			default:
 				go func(ch chan Notification) {
-					h.sseUnregister <- &SSEClient{clientID: notification.ClientID, send: ch}
+					h.sseUnsubscribe <- &SSEClient{clientID: notification.ClientID, send: ch}
 				}(clientChan)
 			}
 		}
@@ -199,7 +197,7 @@ func (h *NotificationService) HandleWebSocket(ctx context.Context, w http.Respon
 		send:     make(chan Notification, 256),
 	}
 
-	h.wsRegister <- client
+	h.wsSubscribe <- client
 
 	// Start client goroutines
 	go client.writePump()
@@ -251,7 +249,7 @@ func (c *WebSocketClient) writePump() {
 
 func (c *WebSocketClient) readPump() {
 	defer func() {
-		c.svc.wsUnregister <- c
+		c.svc.wsUnsubscribe <- c
 		c.conn.Close()
 	}()
 
@@ -288,7 +286,7 @@ func (h *NotificationService) HandleSSE(context context.Context, w http.Response
 		send:     make(chan Notification, 256),
 	}
 
-	h.sseRegister <- client
+	h.sseSubscribe <- client
 
 	// Send initial connection established message
 	fmt.Fprintf(w, "event: connected\ndata: {\"connected\": true}\n\n")
@@ -300,7 +298,7 @@ func (h *NotificationService) HandleSSE(context context.Context, w http.Response
 	notify := r.Context().Done()
 	go func() {
 		<-notify
-		h.sseUnregister <- client
+		h.sseUnsubscribe <- client
 	}()
 
 	// Send notifications to client
