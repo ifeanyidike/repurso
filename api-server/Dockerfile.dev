@@ -74,8 +74,16 @@ FROM golang:1.23.1-alpine
 WORKDIR /app
 
 # Install FFmpeg and Air for development
-RUN apk add --no-cache ffmpeg && \
-    go install github.com/air-verse/air@latest
+# RUN apk add --no-cache ffmpeg && \
+#     go install github.com/air-verse/air@latest
+
+RUN apk add --no-cache \
+    ffmpeg \
+    git \
+    build-base \
+    gcc \
+    musl-dev \
+    && go install github.com/air-verse/air@latest
 
 # Copy Go module files and download dependencies
 COPY go.mod go.sum ./

@@ -12,14 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NotificationType represents different types of notifications
+// NotificationType and other type definitions remain the same
 type NotificationType string
-
-const (
-	TypeJobStatus NotificationType = "job_status"
-	TypeError     NotificationType = "error"
-	TypeHeartbeat NotificationType = "heartbeat"
-)
 
 type Notifier interface {
 	Start(ctx context.Context)
@@ -28,7 +22,13 @@ type Notifier interface {
 	HandleSSE(ctx context.Context, w http.ResponseWriter, r *http.Request, ClientID string)
 }
 
-// Notification represents a message to be sent to clients
+const (
+	TypeJobStatus NotificationType = "job_status"
+	TypeError     NotificationType = "error"
+	TypeHeartbeat NotificationType = "heartbeat"
+)
+
+// Notification struct remains the same
 type Notification struct {
 	Type     NotificationType `json:"type"`
 	JobID    string           `json:"job_id"`
@@ -39,33 +39,25 @@ type Notification struct {
 	Time     time.Time        `json:"time"`
 }
 
-// NotificationService manages all client connections and notifications
 type NotificationService struct {
-	wsClients    map[string]map[*WebSocketClient]bool
-	wsRegister   chan *WebSocketClient
-	wsUnregister chan *WebSocketClient
-
-	// SSE specific
+	wsClients     map[string]map[*WebSocketClient]bool
+	wsRegister    chan *WebSocketClient
+	wsUnregister  chan *WebSocketClient
 	sseClients    map[string]map[chan Notification]bool
 	sseRegister   chan *SSEClient
 	sseUnregister chan *SSEClient
-
-	// Common
 	notifications chan Notification
 	stop          chan struct{}
 	mu            sync.RWMutex
 }
 
-// WebSocketClient represents a WebSocket connection
 type WebSocketClient struct {
 	svc      *NotificationService
 	conn     *websocket.Conn
 	clientID string
 	send     chan Notification
-	stopPing chan struct{}
 }
 
-// SSEClient represents a Server-Sent Events connection
 type SSEClient struct {
 	svc      *NotificationService
 	clientID string
@@ -80,7 +72,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// NewNotificationHub creates a new svc instance
+// NewNotificationService creates a new service instance
 func NewNotificationService() *NotificationService {
 	return &NotificationService{
 		wsClients:     make(map[string]map[*WebSocketClient]bool),
@@ -94,13 +86,12 @@ func NewNotificationService() *NotificationService {
 	}
 }
 
-// Start begins the notification svc's main loop
 func (h *NotificationService) Start(ctx context.Context) {
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				h.stop <- struct{}{}
+				close(h.stop)
 				return
 
 			case client := <-h.wsRegister:
@@ -110,6 +101,7 @@ func (h *NotificationService) Start(ctx context.Context) {
 				}
 				h.wsClients[client.clientID][client] = true
 				h.mu.Unlock()
+				log.Printf("WebSocket client registered: %s", client.clientID)
 
 			case client := <-h.wsUnregister:
 				h.mu.Lock()
@@ -123,6 +115,7 @@ func (h *NotificationService) Start(ctx context.Context) {
 					}
 				}
 				h.mu.Unlock()
+				log.Printf("WebSocket client unregistered: %s", client.clientID)
 
 			case client := <-h.sseRegister:
 				h.mu.Lock()
@@ -152,17 +145,15 @@ func (h *NotificationService) Start(ctx context.Context) {
 	}()
 }
 
-// Notify sends a notification to all clients subscribed to the specified job
 func (h *NotificationService) Notify(notification Notification) error {
 	select {
 	case h.notifications <- notification:
 		return nil
-	default:
-		return fmt.Errorf("notification buffer full")
+	case <-time.After(time.Second * 5):
+		return fmt.Errorf("notification buffer full or timeout")
 	}
 }
 
-// broadcast sends a notification to all relevant clients
 func (h *NotificationService) broadcast(notification Notification) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -173,8 +164,9 @@ func (h *NotificationService) broadcast(notification Notification) {
 			select {
 			case client.send <- notification:
 			default:
-				close(client.send)
-				delete(clients, client)
+				go func(c *WebSocketClient) {
+					h.wsUnregister <- c
+				}(client)
 			}
 		}
 	}
@@ -185,30 +177,26 @@ func (h *NotificationService) broadcast(notification Notification) {
 			select {
 			case clientChan <- notification:
 			default:
-				close(clientChan)
-				delete(clients, clientChan)
+				go func(ch chan Notification) {
+					h.sseUnregister <- &SSEClient{clientID: notification.ClientID, send: ch}
+				}(clientChan)
 			}
 		}
 	}
 }
 
-// HandleWebSocket handles WebSocket connections
-func (h *NotificationService) HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request, ClientID string) {
-
+func (h *NotificationService) HandleWebSocket(ctx context.Context, w http.ResponseWriter, r *http.Request, clientID string) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
 
-	defer conn.Close()
-
 	client := &WebSocketClient{
 		svc:      h,
 		conn:     conn,
-		clientID: ClientID,
+		clientID: clientID,
 		send:     make(chan Notification, 256),
-		stopPing: make(chan struct{}),
 	}
 
 	h.wsRegister <- client
@@ -216,7 +204,73 @@ func (h *NotificationService) HandleWebSocket(ctx context.Context, w http.Respon
 	// Start client goroutines
 	go client.writePump()
 	go client.readPump()
-	go client.pingPump()
+}
+
+func (c *WebSocketClient) writePump() {
+	ticker := time.NewTicker(time.Second * 54)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+	}()
+
+	for {
+		select {
+		case notification, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(time.Second * 10))
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			w, err := c.conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+
+			data, err := json.Marshal(notification)
+			if err != nil {
+				return
+			}
+
+			if _, err := w.Write(data); err != nil {
+				return
+			}
+
+			if err := w.Close(); err != nil {
+				return
+			}
+
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(time.Second * 10))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func (c *WebSocketClient) readPump() {
+	defer func() {
+		c.svc.wsUnregister <- c
+		c.conn.Close()
+	}()
+
+	c.conn.SetReadLimit(4096)
+	c.conn.SetReadDeadline(time.Now().Add(time.Second * 60))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(time.Second * 60))
+		return nil
+	})
+
+	for {
+		_, _, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("WebSocket read error: %v", err)
+			}
+			break
+		}
+	}
 }
 
 // HandleSSE handles Server-Sent Events connections
@@ -263,101 +317,3 @@ func (h *NotificationService) HandleSSE(context context.Context, w http.Response
 		}
 	}
 }
-
-// WebSocket client methods
-func (c *WebSocketClient) writePump() {
-	ticker := time.NewTicker(time.Second * 54) // Keep-alive ticker
-	defer func() {
-		ticker.Stop()
-		c.conn.Close()
-	}()
-
-	for {
-		select {
-		case notification, ok := <-c.send:
-			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			err := c.conn.WriteJSON(notification)
-			if err != nil {
-				log.Printf("Error writing to WebSocket: %v", err)
-				return
-			}
-
-		case <-ticker.C:
-			heartbeat := Notification{
-				Type: TypeHeartbeat,
-				Time: time.Now(),
-			}
-			if err := c.conn.WriteJSON(heartbeat); err != nil {
-				return
-			}
-		}
-	}
-}
-
-func (c *WebSocketClient) readPump() {
-	defer func() {
-		c.svc.wsUnregister <- c
-		c.conn.Close()
-	}()
-
-	c.conn.SetReadLimit(512) // Limit size of incoming messages
-	c.conn.SetReadDeadline(time.Now().Add(time.Second * 60))
-	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(time.Second * 60))
-		return nil
-	})
-
-	for {
-		_, _, err := c.conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket error: %v", err)
-			}
-			break
-		}
-	}
-}
-
-func (c *WebSocketClient) pingPump() {
-	ticker := time.NewTicker(time.Second * 54)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second*10)); err != nil {
-				log.Printf("ping error: %v", err)
-				return
-			}
-		case <-c.stopPing:
-			return
-		}
-	}
-}
-
-// Example usage in your main application
-// func ExampleUsage() {
-// 	svc := NewNotificationHub()
-// 	ctx := context.Background()
-// 	svc.Start(ctx)
-
-// 	// WebSocket endpoint
-// 	http.HandleFunc("/ws", svc.HandleWebSocket)
-
-// 	// SSE endpoint
-// 	http.HandleFunc("/sse", svc.HandleSSE)
-
-// 	// Example of sending a notification
-// 	notification := Notification{
-// 		Type:   TypeJobStatus,
-// 		JobID:  "job123",
-// 		Status: "completed",
-// 		Data:   "Transcript generated successfully",
-// 		Time:   time.Now(),
-// 	}
-// 	svc.Notify(notification)
-// }

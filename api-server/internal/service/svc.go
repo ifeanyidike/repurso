@@ -4,7 +4,6 @@ import (
 	"context"
 	"mime/multipart"
 
-	"github.com/ifeanyidike/improv/internal/proto"
 	pb "github.com/ifeanyidike/improv/internal/proto"
 	"github.com/ifeanyidike/improv/internal/repository"
 	"github.com/ifeanyidike/improv/internal/types"
@@ -18,6 +17,7 @@ type UploadServicer interface {
 	GetUploadData(ctx context.Context, uniq_id string) (map[string]interface{}, error)
 	AutoSaveVideo(ctx context.Context, bucket, videoID string, updates *types.VideoGetParams) error
 	GenerateTranscript(ctx context.Context, bucket, videoId string) (string, error)
+	AutoGenerateTranscript(ctx context.Context, bucket, audioUrl, videoId string) (string, error)
 	GetKeyMoments(ctx context.Context, bucket, videoId string, moment string) ([]*pb.KeyMoment, error)
 	SetJobProcessor(processor JobProcessor)
 	SampleJob(context.Context)
@@ -28,7 +28,7 @@ type UploadService struct {
 	Repo                 repository.Repo
 	FFmpegService        FFmpegServicer
 	AudioWaveformService AudioWaveformServicer
-	grpcClient           *proto.MediaAnalysisServiceClient
+	grpcClient           *pb.MediaAnalysisServiceClient
 	ctx                  context.Context
 	jobProcessor         JobProcessor
 	// grpcService          GrpcServicer
@@ -60,7 +60,7 @@ func NewUploadService(
 	awsService AWSService,
 	ffmpegService FFmpegServicer,
 	waveformService AudioWaveformServicer,
-	grpcClient *proto.MediaAnalysisServiceClient,
+	grpcClient *pb.MediaAnalysisServiceClient,
 	ctx context.Context,
 	jobProcessor JobProcessor,
 ) UploadServicer {

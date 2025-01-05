@@ -166,22 +166,7 @@ func (u *UploadService) performUpload(ctx context.Context, tempVideoFile, bucket
 	return result, nil
 }
 
-func (u *UploadService) GenerateTranscript(ctx context.Context, bucket, videoId string) (string, error) {
-	// audioUrl, err := u.Repo.GetVideoAudio(ctx, videoId)
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to get audio URL: %v", err)
-	// }
-	audioUrl := "https://repurposerapp-bucket.s3.eu-west-1.amazonaws.com/audios/audio-example-2.mp3"
-	fmt.Println("audio url:", audioUrl)
-
-	// conn, err := grpc.NewClient("ai-service:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to connect to subtitles service: %v", err)
-	// }
-	// defer conn.Close()
-
-	// client := pb.NewMediaAnalysisServiceClient(conn)
-
+func (u *UploadService) processTranscriptGeneration(ctx context.Context, bucket, audioUrl, videoId string) (string, error) {
 	req := &pb.TranscriptRequest{
 		Base: &pb.BaseRequest{
 			Bucket:   bucket,
@@ -190,8 +175,6 @@ func (u *UploadService) GenerateTranscript(ctx context.Context, bucket, videoId 
 		LanguageCode:             "en-US",
 		EnableSpeakerDiarization: true,
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Minute*20)
-	defer cancel()
 
 	if u.grpcClient == nil {
 		return "", fmt.Errorf("grpcClient is nil")
@@ -214,6 +197,23 @@ func (u *UploadService) GenerateTranscript(ctx context.Context, bucket, videoId 
 		return "", fmt.Errorf("failed to save subtitle URL: %v", err)
 	}
 	return res.TranscriptUrl, nil
+}
+
+func (u *UploadService) GenerateTranscript(ctx context.Context, bucket, videoId string) (string, error) {
+	audioUrl, err := u.Repo.GetVideoAudio(ctx, videoId)
+	if err != nil {
+		return "", fmt.Errorf("failed to get audio URL: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Minute*20)
+	defer cancel()
+	return u.processTranscriptGeneration(ctx, bucket, audioUrl, videoId)
+
+}
+
+func (u *UploadService) AutoGenerateTranscript(ctx context.Context, bucket, audioUrl, videoId string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute*20)
+	defer cancel()
+	return u.processTranscriptGeneration(ctx, bucket, audioUrl, videoId)
 }
 
 // func getMomentType(moment string) pb.KeyMomentType {
@@ -290,8 +290,8 @@ func (u *UploadService) GetKeyMoments(ctx context.Context, bucket, videoId strin
 func (u *UploadService) SampleJob(ctx context.Context) {
 	job := &TranscriptionJob{
 		ID:       "1",
-		Bucket:   "1234",
-		AudioURL: "my-audio-url",
+		Bucket:   "repurposerapp-bucket",
+		AudioURL: "https://repurposerapp-bucket.s3.eu-west-1.amazonaws.com/audios/audio-example-2.mp3",
 		VideoID:  "vid123",
 		ClientID: "project123",
 	}

@@ -20,23 +20,24 @@ func NewNotificationController(notifier service.Notifier) *NotificationControlle
 }
 
 func (n *NotificationController) HandleWebSocket(c *gin.Context) {
-	jobID := c.Query("client_id")
-	if jobID == "" {
+	clientID := c.Query("client_id")
+	if clientID == "" {
 		n.logger.Println("Missing client_id parameter")
 		c.AbortWithStatus(400)
 		return
 	}
-	n.notifier.HandleWebSocket(c, c.Writer, c.Request, jobID)
+	log.Println("In HandleWebSocket Client ID: ", clientID)
+	n.notifier.HandleWebSocket(c, c.Writer, c.Request, clientID)
 }
 
 func (n *NotificationController) HandleSSE(c *gin.Context) {
-	jobID := c.Query("client_id")
-	if jobID == "" {
+	clientID := c.Query("client_id")
+	if clientID == "" {
 		n.logger.Println("Missing client_id parameter")
 		c.AbortWithStatus(400)
 		return
 	}
-	n.notifier.HandleSSE(c, c.Writer, c.Request, jobID)
+	n.notifier.HandleSSE(c, c.Writer, c.Request, clientID)
 }
 
 func (n *NotificationController) RegisterRoutes(router *gin.RouterGroup) {

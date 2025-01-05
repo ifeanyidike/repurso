@@ -18,9 +18,10 @@ type JobResult struct {
 }
 
 type ProcessingError struct {
-	JobID string
-	Op    string
-	Err   error
+	JobID    string
+	ClientID string
+	Op       string
+	Err      error
 }
 
 type JobStatus struct {
@@ -134,7 +135,9 @@ func (p *BackgroundProcessor) Start(ctx context.Context, workers int) error {
 func (p *BackgroundProcessor) notifyWithRetry(notification Notification, maxRetries int) error {
 	var lastErr error
 	for i := 0; i < maxRetries; i++ {
+		log.Println("notifying...", notification)
 		if err := p.notifier.Notify(notification); err != nil {
+			log.Printf("Failed to notify: %v", err)
 			lastErr = err
 			time.Sleep(time.Second * time.Duration(i+1))
 			continue
@@ -182,10 +185,11 @@ func (p *BackgroundProcessor) ProcessJob(ctx context.Context, job Job) error {
 		if err := recover(); err != nil {
 			log.Printf("Recovered from panic in processJob: %v", err)
 			p.notifyWithRetry(Notification{
-				Type:   TypeError,
-				JobID:  job.GetClientID(),
-				Status: "failed",
-				Time:   time.Now(),
+				Type:     TypeError,
+				JobID:    job.GetID(),
+				ClientID: job.GetClientID(),
+				Status:   "failed",
+				Time:     time.Now(),
 			}, 3)
 		}
 	}()
@@ -196,18 +200,20 @@ func (p *BackgroundProcessor) ProcessJob(ctx context.Context, job Job) error {
 	defer atomic.AddInt64(&p.metrics.activeJobs, -1)
 
 	notification := Notification{
-		Type:   TypeJobStatus,
-		JobID:  job.GetClientID(),
-		Status: "processing",
-		Time:   time.Now(),
+		Type:     TypeJobStatus,
+		JobID:    job.GetID(),
+		ClientID: job.GetClientID(),
+		Status:   "processing",
+		Time:     time.Now(),
 	}
 
 	if err := p.notifyWithRetry(notification, 3); err != nil {
 		log.Printf("Failed to notify job status: %v", err)
 		return &ProcessingError{
-			JobID: job.GetClientID(),
-			Op:    "initial_notification",
-			Err:   err,
+			JobID:    job.GetID(),
+			ClientID: job.GetClientID(),
+			Op:       "initial_notification",
+			Err:      err,
 		}
 	}
 
@@ -217,7 +223,8 @@ func (p *BackgroundProcessor) ProcessJob(ctx context.Context, job Job) error {
 	go func() {
 		switch j := job.(type) {
 		case *TranscriptionJob:
-			transcriptURL, err := p.uploadService.GenerateTranscript(ctx, j.Bucket, j.VideoID)
+			transcriptURL, err := p.uploadService.AutoGenerateTranscript(ctx, j.Bucket, j.AudioURL, j.VideoID)
+			fmt.Println("transcriptURL: ", transcriptURL)
 			if err != nil {
 				done <- err
 				return
@@ -236,6 +243,7 @@ func (p *BackgroundProcessor) ProcessJob(ctx context.Context, job Job) error {
 		p.notifyWithRetry(notification, 3)
 		return ctx.Err()
 	case err := <-done:
+		log.Println("err:=<-done activated")
 		if err != nil {
 			notification.Status = "failed"
 			notification.Error = err.Error()
@@ -266,6 +274,23 @@ func (p *BackgroundProcessor) ProcessJob(ctx context.Context, job Job) error {
 		p.metrics.processingTime += time.Since(startTime)
 		p.metrics.mu.Unlock()
 
+		return nil
+	case <-done:
+		log.Println("process completed without errors")
+		notification.Status = "completed"
+		notification.Data = <-result
+		notification.Time = time.Now()
+
+		if err := p.notifyWithRetry(notification, 3); err != nil {
+			log.Printf("Failed to send completion notification for job %s: %v", job.GetClientID(), err)
+		}
+
+		// Update success metrics
+		atomic.AddInt64(&p.metrics.completedJobs, 1)
+		p.metrics.mu.Lock()
+		p.metrics.processingTime += time.Since(startTime)
+		p.metrics.mu.Unlock()
+		log.Println("metric updated successfully")
 		return nil
 	}
 
