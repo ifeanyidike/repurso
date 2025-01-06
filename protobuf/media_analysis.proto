@@ -11,6 +11,7 @@ service MediaAnalysisService {
 
     rpc GenerateTranscript(TranscriptRequest) returns (TranscriptResponse);
     rpc DetectKeyMoments(KeyMomentsRequest) returns (KeyMomentsResponse);
+    rpc DetectSilence(SilenceRequest) returns (SilenceResponse);
     rpc AnalyzeTopics(TopicAnalysisRequest) returns (TopicAnalysisResponse);
     rpc AnalyzeSentiment(SentimentRequest) returns (SentimentResponse);
     rpc GenerateChapters(ChapterRequest) returns (ChapterResponse);
@@ -96,6 +97,23 @@ message KeyMoment {
 
 message KeyMomentsResponse {
     repeated KeyMoment moments = 1;
+    string error = 2;
+}
+
+message SilenceRequest {
+    BaseRequest base = 1;
+    float min_silence_duration = 2;
+    float max_silence_duration = 3;
+}
+
+message Silence {
+    float start = 1;
+    float end = 2;
+    float confidence = 3;
+}
+
+message SilenceResponse {
+    repeated Silence silences = 1;
     string error = 2;
 }
 

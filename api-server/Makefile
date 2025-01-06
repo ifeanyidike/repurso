@@ -1,7 +1,7 @@
 # Variables
 DB_URL=postgres://ifeanyidike:frosty@postgres/repursodb?sslmode=disable
 MIGRATIONS_DIR=./cmd/migrate/migrations
-NETWORK=2d82032c2293
+NETWORK=988bf9759c52
 MIGRATE_CMD=docker run --rm --network=${NETWORK} -v $(shell pwd)/cmd/migrate/migrations:/migrations migrate/migrate 
 
 # Targets

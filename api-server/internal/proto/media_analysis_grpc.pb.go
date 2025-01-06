@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	MediaAnalysisService_GenerateTranscript_FullMethodName      = "/media_analysis.MediaAnalysisService/GenerateTranscript"
 	MediaAnalysisService_DetectKeyMoments_FullMethodName        = "/media_analysis.MediaAnalysisService/DetectKeyMoments"
+	MediaAnalysisService_DetectSilence_FullMethodName           = "/media_analysis.MediaAnalysisService/DetectSilence"
 	MediaAnalysisService_AnalyzeTopics_FullMethodName           = "/media_analysis.MediaAnalysisService/AnalyzeTopics"
 	MediaAnalysisService_AnalyzeSentiment_FullMethodName        = "/media_analysis.MediaAnalysisService/AnalyzeSentiment"
 	MediaAnalysisService_GenerateChapters_FullMethodName        = "/media_analysis.MediaAnalysisService/GenerateChapters"
@@ -42,6 +43,7 @@ const (
 type MediaAnalysisServiceClient interface {
 	GenerateTranscript(ctx context.Context, in *TranscriptRequest, opts ...grpc.CallOption) (*TranscriptResponse, error)
 	DetectKeyMoments(ctx context.Context, in *KeyMomentsRequest, opts ...grpc.CallOption) (*KeyMomentsResponse, error)
+	DetectSilence(ctx context.Context, in *SilenceRequest, opts ...grpc.CallOption) (*SilenceResponse, error)
 	AnalyzeTopics(ctx context.Context, in *TopicAnalysisRequest, opts ...grpc.CallOption) (*TopicAnalysisResponse, error)
 	AnalyzeSentiment(ctx context.Context, in *SentimentRequest, opts ...grpc.CallOption) (*SentimentResponse, error)
 	GenerateChapters(ctx context.Context, in *ChapterRequest, opts ...grpc.CallOption) (*ChapterResponse, error)
@@ -77,6 +79,16 @@ func (c *mediaAnalysisServiceClient) DetectKeyMoments(ctx context.Context, in *K
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(KeyMomentsResponse)
 	err := c.cc.Invoke(ctx, MediaAnalysisService_DetectKeyMoments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mediaAnalysisServiceClient) DetectSilence(ctx context.Context, in *SilenceRequest, opts ...grpc.CallOption) (*SilenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SilenceResponse)
+	err := c.cc.Invoke(ctx, MediaAnalysisService_DetectSilence_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +213,7 @@ func (c *mediaAnalysisServiceClient) GenerateContentWarnings(ctx context.Context
 type MediaAnalysisServiceServer interface {
 	GenerateTranscript(context.Context, *TranscriptRequest) (*TranscriptResponse, error)
 	DetectKeyMoments(context.Context, *KeyMomentsRequest) (*KeyMomentsResponse, error)
+	DetectSilence(context.Context, *SilenceRequest) (*SilenceResponse, error)
 	AnalyzeTopics(context.Context, *TopicAnalysisRequest) (*TopicAnalysisResponse, error)
 	AnalyzeSentiment(context.Context, *SentimentRequest) (*SentimentResponse, error)
 	GenerateChapters(context.Context, *ChapterRequest) (*ChapterResponse, error)
@@ -227,6 +240,9 @@ func (UnimplementedMediaAnalysisServiceServer) GenerateTranscript(context.Contex
 }
 func (UnimplementedMediaAnalysisServiceServer) DetectKeyMoments(context.Context, *KeyMomentsRequest) (*KeyMomentsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DetectKeyMoments not implemented")
+}
+func (UnimplementedMediaAnalysisServiceServer) DetectSilence(context.Context, *SilenceRequest) (*SilenceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DetectSilence not implemented")
 }
 func (UnimplementedMediaAnalysisServiceServer) AnalyzeTopics(context.Context, *TopicAnalysisRequest) (*TopicAnalysisResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AnalyzeTopics not implemented")
@@ -314,6 +330,24 @@ func _MediaAnalysisService_DetectKeyMoments_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MediaAnalysisServiceServer).DetectKeyMoments(ctx, req.(*KeyMomentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MediaAnalysisService_DetectSilence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SilenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MediaAnalysisServiceServer).DetectSilence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MediaAnalysisService_DetectSilence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MediaAnalysisServiceServer).DetectSilence(ctx, req.(*SilenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -530,6 +564,10 @@ var MediaAnalysisService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DetectKeyMoments",
 			Handler:    _MediaAnalysisService_DetectKeyMoments_Handler,
+		},
+		{
+			MethodName: "DetectSilence",
+			Handler:    _MediaAnalysisService_DetectSilence_Handler,
 		},
 		{
 			MethodName: "AnalyzeTopics",

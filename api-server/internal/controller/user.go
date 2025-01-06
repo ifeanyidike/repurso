@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,7 @@ import (
 )
 
 type RegisterUserRequest struct {
-	Auth0ID       string `json:"auth0_id" binding:"required"`
+	Auth0ID       string `json:"user_id" binding:"required"`
 	Email         string `json:"email" binding:"required"`
 	Name          string `json:"name" binding:"required"`
 	Picture       string `json:"picture"`
@@ -29,6 +30,7 @@ func (c *UserController) RegisterUser(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
+
 	auth0_id := req.Auth0ID
 	email := req.Email
 	name := req.Name
@@ -38,11 +40,9 @@ func (c *UserController) RegisterUser(ctx *gin.Context) {
 	err := c.UserService.RegisterUser(ctx, auth0_id, email, name, picture, email_verified)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not register user"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("could not register user: %v", err)})
 		return
 	}
-
-	// Perform validation and save user to the database
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Registration successful"})
 }

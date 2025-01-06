@@ -19,7 +19,7 @@ class AudioSegment:
 class SilenceDetector:
     def __init__(
         self,
-        silence_threshold: float = -30.0, 
+        silence_threshold: float = -20.0, 
         min_silence_duration: float = 0.3, 
         padding: float = 0.1,
         sample_rate: int = 16000
@@ -146,7 +146,7 @@ class SilenceDetector:
                     "end": segment.end,
                     "confidence": segment.confidence
                 }
-                for segment in segments
+                for segment in segments if segment.confidence > 0.7
             ]
             
             logger.info(f"Final result: {len(result)} segments")

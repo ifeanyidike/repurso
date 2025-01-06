@@ -19,6 +19,7 @@ type UploadServicer interface {
 	GenerateTranscript(ctx context.Context, bucket, videoId string) (string, error)
 	AutoGenerateTranscript(ctx context.Context, bucket, audioUrl, videoId string) (string, error)
 	GetKeyMoments(ctx context.Context, bucket, videoId string, moment string) ([]*pb.KeyMoment, error)
+	DetectSilence(ctx context.Context, bucket, videoId string) ([]*pb.Silence, error)
 	SetJobProcessor(processor JobProcessor)
 	SampleJob(context.Context)
 }

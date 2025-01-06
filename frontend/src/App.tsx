@@ -5,14 +5,17 @@ import { RouterProvider } from "react-router-dom";
 import { userImpl } from "./service/User";
 
 function App() {
-  const { isAuthenticated, user, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, user, getAccessTokenSilently, getIdTokenClaims } =
+    useAuth0();
   useEffect(() => {
     console.log("isAuthenticated", isAuthenticated, user);
     (async () => {
       const token = await getAccessTokenSilently();
-      console.log("token", token);
+      const tk = await getIdTokenClaims();
+      console.log("access token", token);
+      console.log("id token claims", tk);
       if (user && isAuthenticated) {
-        userImpl.registerUser(user, token);
+        userImpl.registerUser(user, tk?.__raw as string);
       }
     })();
   }, [isAuthenticated, user]);

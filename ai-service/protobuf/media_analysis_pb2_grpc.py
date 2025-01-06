@@ -47,6 +47,11 @@ class MediaAnalysisServiceStub(object):
                 request_serializer=protobuf_dot_media__analysis__pb2.KeyMomentsRequest.SerializeToString,
                 response_deserializer=protobuf_dot_media__analysis__pb2.KeyMomentsResponse.FromString,
                 _registered_method=True)
+        self.DetectSilence = channel.unary_unary(
+                '/media_analysis.MediaAnalysisService/DetectSilence',
+                request_serializer=protobuf_dot_media__analysis__pb2.SilenceRequest.SerializeToString,
+                response_deserializer=protobuf_dot_media__analysis__pb2.SilenceResponse.FromString,
+                _registered_method=True)
         self.AnalyzeTopics = channel.unary_unary(
                 '/media_analysis.MediaAnalysisService/AnalyzeTopics',
                 request_serializer=protobuf_dot_media__analysis__pb2.TopicAnalysisRequest.SerializeToString,
@@ -117,6 +122,12 @@ class MediaAnalysisServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def DetectKeyMoments(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DetectSilence(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -200,6 +211,11 @@ def add_MediaAnalysisServiceServicer_to_server(servicer, server):
                     servicer.DetectKeyMoments,
                     request_deserializer=protobuf_dot_media__analysis__pb2.KeyMomentsRequest.FromString,
                     response_serializer=protobuf_dot_media__analysis__pb2.KeyMomentsResponse.SerializeToString,
+            ),
+            'DetectSilence': grpc.unary_unary_rpc_method_handler(
+                    servicer.DetectSilence,
+                    request_deserializer=protobuf_dot_media__analysis__pb2.SilenceRequest.FromString,
+                    response_serializer=protobuf_dot_media__analysis__pb2.SilenceResponse.SerializeToString,
             ),
             'AnalyzeTopics': grpc.unary_unary_rpc_method_handler(
                     servicer.AnalyzeTopics,
@@ -314,6 +330,33 @@ class MediaAnalysisService(object):
             '/media_analysis.MediaAnalysisService/DetectKeyMoments',
             protobuf_dot_media__analysis__pb2.KeyMomentsRequest.SerializeToString,
             protobuf_dot_media__analysis__pb2.KeyMomentsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DetectSilence(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/media_analysis.MediaAnalysisService/DetectSilence',
+            protobuf_dot_media__analysis__pb2.SilenceRequest.SerializeToString,
+            protobuf_dot_media__analysis__pb2.SilenceResponse.FromString,
             options,
             channel_credentials,
             insecure,

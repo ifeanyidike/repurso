@@ -215,10 +215,23 @@ func (uc *UploadController) GetKeyMoments(c *gin.Context) {
 	if err != nil {
 		log.Println("Error generating key moments:", err)
 
-		utils.RespondError(c, http.StatusInternalServerError, fmt.Sprintf("error generating subtitle: %v", err))
+		utils.RespondError(c, http.StatusInternalServerError, fmt.Sprintf("error getting key moments: %v", err))
 		return
 	}
 	utils.RespondJSON(c, http.StatusOK, gin.H{"message": "Key moments successfully generated", "moments": keyMoments})
+}
+
+func (uc *UploadController) DetectSilence(c *gin.Context) {
+	videoId := c.Param("videoId")
+	bucket := config.Cfg.AWS.BucketName
+	silences, err := uc.UploadService.DetectSilence(c, bucket, videoId)
+	if err != nil {
+		log.Println("Error detecting silence:", err)
+
+		utils.RespondError(c, http.StatusInternalServerError, fmt.Sprintf("error detecting silence: %v", err))
+		return
+	}
+	utils.RespondJSON(c, http.StatusOK, gin.H{"message": "Silences successfully detected", "silences": silences})
 }
 
 func (uc *UploadController) TriggerSampleJob(c *gin.Context) {

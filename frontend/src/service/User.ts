@@ -5,7 +5,7 @@ class User {
 
   public async registerUser(user: Auth0User, token: string) {
     try {
-      const response = await fetch(`${this.SERVER}/v1/register`, {
+      const response = await fetch(`${this.SERVER}/v1/register-user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

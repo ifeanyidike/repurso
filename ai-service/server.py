@@ -3,8 +3,7 @@ import grpc
 from concurrent import futures
 from protobuf import media_analysis_pb2
 from protobuf import media_analysis_pb2_grpc
-from services import transcript_processor
-from services import moment_processor
+from services import transcript_processor, moment_processor, silence_detector
 from services import moment_type_utils
 
 
@@ -23,13 +22,18 @@ class MediaAnalysisService(media_analysis_pb2_grpc.MediaAnalysisServiceServicer)
     
     def DetectKeyMoments(self, request, context):
         """Function to detect key moments"""
-        # moments = utility.detect_key_moments(request.transcript, request.keywords)
-        # subtitle_text = moments.get("subtitle_text", "")  # Placeholder
         base = request.base
         moment_types = moment_type_utils.get_proto_moment_type(request.moment_types)
         momentProcessor = moment_processor.MomentProcessor(base.bucket)
         key_moments = momentProcessor.analyze_moments(base.media_url, moment_types=moment_types)
         return media_analysis_pb2.KeyMomentsResponse(moments=key_moments, error=None)
+    
+    def DetectSilence(self, request, context):
+        """Function to detect silence"""
+        base = request.base
+        silenceDetector = silence_detector.SilenceDetector()
+        silences = silenceDetector.detect_speech_segments(base.media_url)
+        return media_analysis_pb2.SilenceResponse(silences=silences, error=None)
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

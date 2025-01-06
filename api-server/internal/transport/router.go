@@ -51,6 +51,7 @@ func (app *Application) Mount() http.Handler {
 
 	appUpload, notificationCtl := app.InitUploadTransport()
 	appUser := app.InitUserTransport()
+	authConfig := middleware.NewAuth0Config()
 
 	v1 := router.Group("/v1")
 	{
@@ -67,7 +68,8 @@ func (app *Application) Mount() http.Handler {
 			video.GET("/:videoId", appUser.GetVideo)
 			video.PUT("/transcript/generate/:videoId", appUpload.GenerateTranscript)
 			video.GET("/keymoments/:videoId/:moment", appUpload.GetKeyMoments)
-			video.GET("/samplejob", appUpload.TriggerSampleJob)
+			video.GET("/detect-silence/:videoId", appUpload.DetectSilence)
+			video.Use(middleware.Auth0Middleware(authConfig)).GET("/samplejob", appUpload.TriggerSampleJob)
 		}
 
 		projects := v1.Group("/projects")
@@ -77,7 +79,7 @@ func (app *Application) Mount() http.Handler {
 			projects.GET("/videos/:id", appUser.GetVideos)
 		}
 
-		v1.POST("/register", appUser.RegisterUser)
+		v1.Use(middleware.Auth0Middleware(authConfig)).POST("/register-user", appUser.RegisterUser)
 
 		v1.GET("/health", app.healthCheckHandler)
 		notificationCtl.RegisterRoutes(v1)
