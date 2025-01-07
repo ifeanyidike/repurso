@@ -14,16 +14,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CustomClaims contains custom claims data
 type CustomClaims struct {
 	Scope string `json:"scope"`
 	Email string `json:"email"`
 }
 
-// Auth0Config holds Auth0 configuration
 type Auth0Config struct {
 	Issuer   string
 	Audience string
+	Domain   string
+	ClientID string
 }
 
 func (c CustomClaims) Validate(ctx context.Context) error {
@@ -34,7 +34,9 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 func NewAuth0Config() *Auth0Config {
 	return &Auth0Config{
 		Issuer:   os.Getenv("AUTH0_ISSUER"),
-		Audience: os.Getenv("AUTH0_AUDIENCE"),
+		Audience: os.Getenv("AUTH0_MANGEMENT_AUDIENCE"),
+		Domain:   os.Getenv("AUTH0_DOMAIN"),
+		ClientID: os.Getenv("AUTH0_CLIENT_ID"),
 	}
 }
 
@@ -63,67 +65,8 @@ func Auth0Middleware(config *Auth0Config) gin.HandlerFunc {
 	}
 }
 
-// RegisterHandler handles new user registration from Auth0 Actions
-// func RegisterHandler(db *Database) gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		var user struct {
-// 			UserID    string `json:"user_id" binding:"required"`
-// 			Email     string `json:"email" binding:"required,email"`
-// 			CreatedAt string `json:"created_at" binding:"required"`
-// 		}
-
-// 		if err := c.ShouldBindJSON(&user); err != nil {
-// 			c.JSON(http.StatusBadRequest, gin.H{
-// 				"error": "Invalid request body",
-// 			})
-// 			return
-// 		}
-
-// 		// Validate the token is from Auth0 Management API
-// 		token := extractToken(c.Request)
-// 		if !isValidManagementToken(token) {
-// 			c.JSON(http.StatusUnauthorized, gin.H{
-// 				"error": "Invalid management token",
-// 			})
-// 			return
-// 		}
-
-// 		// Check if user already exists
-// 		exists, err := db.CheckUserExists(user.UserID)
-// 		if err != nil {
-// 			c.JSON(http.StatusInternalServerError, gin.H{
-// 				"error": "Database error",
-// 			})
-// 			return
-// 		}
-
-// 		if exists {
-// 			c.JSON(http.StatusConflict, gin.H{
-// 				"error": "User already exists",
-// 			})
-// 			return
-// 		}
-
-// 		// Create new user in database
-// 		if err := db.CreateUser(User{
-// 			Auth0ID:   user.UserID,
-// 			Email:     user.Email,
-// 			CreatedAt: user.CreatedAt,
-// 		}); err != nil {
-// 			c.JSON(http.StatusInternalServerError, gin.H{
-// 				"error": "Failed to create user",
-// 			})
-// 			return
-// 		}
-
-// 		c.Status(http.StatusCreated)
-// 	}
-// }
-
-// Example protected handler
 func ProtectedHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get claims from context (set by middleware)
 		claims, exists := c.Get("user")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -137,7 +80,6 @@ func ProtectedHandler() gin.HandlerFunc {
 		// Access user information
 		userID := validatedClaims.RegisteredClaims.Subject
 
-		// Your protected route logic here
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Protected data",
 			"user_id": userID,
@@ -155,20 +97,18 @@ func extractToken(r *http.Request) string {
 }
 
 func validateToken(token string, config *Auth0Config) (*validator.ValidatedClaims, error) {
-	// Log the configuration
-	issuerURL, err := url.Parse("https://" + os.Getenv("AUTH0_DOMAIN") + "/")
+	issuerURL, err := url.Parse("https://" + config.Domain + "/")
 	if err != nil {
 		return nil, err
 	}
 
-	// The JWKS URL should be constructed by the library
 	provider := jwks.NewCachingProvider(issuerURL, 15*time.Minute)
 
 	jwtValidator, err := validator.New(
 		provider.KeyFunc,
 		validator.RS256,
 		config.Issuer,
-		[]string{os.Getenv("AUTH0_CLIENT_ID"), os.Getenv("AUTH0_MANGEMENT_AUDIENCE")},
+		[]string{config.ClientID, config.Audience},
 		validator.WithCustomClaims(
 			func() validator.CustomClaims {
 				return &CustomClaims{}
@@ -193,10 +133,4 @@ func validateToken(token string, config *Auth0Config) (*validator.ValidatedClaim
 	}
 
 	return validatedClaims, nil
-}
-
-func isValidManagementToken(token string) bool {
-	// Implement JWT validation for Management API tokens
-	// Similar to validateToken but with Management API audience
-	return true // Simplified for example
 }
