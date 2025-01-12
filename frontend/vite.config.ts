@@ -36,6 +36,11 @@ function reactVirtualized(): PluginOption {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), reactVirtualized()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   optimizeDeps: {
     exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util"],
   },
@@ -47,9 +52,16 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
+    // headers: {
+    //   "Cross-Origin-Opener-Policy": "same-origin",
+    //   "Cross-Origin-Embedder-Policy": "require-corp",
+    // },
+    proxy: {
+      "/cdn-images": {
+        target: "https://cdn.pixabay.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/cdn-images/, ""),
+      },
     },
   },
 });

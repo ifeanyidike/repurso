@@ -17,6 +17,7 @@ func fetchFromCache[T any](ctx context.Context, client *redis.Client, key string
 		log.Printf("Error fetching object from Redis: %v", err)
 
 		if err == redis.Nil {
+			log.Println("Error is Redis nil")
 			return nil, nil // Cache miss
 		}
 		return nil, errors.New("failed to get object from Redis")

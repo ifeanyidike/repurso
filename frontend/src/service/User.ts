@@ -12,16 +12,17 @@ class User {
           Authorization: "Bearer " + token,
         },
         body: JSON.stringify({
-          auth0_id: user.sub,
+          user_id: user.sub,
           name: user.name,
           email: user.email,
           picture: user.picture,
-          email_verified: user.email_verified,
+          email_verified: !!user.email_verified,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to register user");
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
 
       const data = await response.json();

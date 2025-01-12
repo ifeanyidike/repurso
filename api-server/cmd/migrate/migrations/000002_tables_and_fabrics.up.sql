@@ -7,7 +7,11 @@ CREATE TABLE IF NOT EXISTS "projects" (
   "id" UUID PRIMARY KEY,
   "user_id" BIGINT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "title" TEXT,
-  "description" TEXT
+  "description" TEXT,
+  "category" VARCHAR(255),
+  "due_date" DATE NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS "videos" (

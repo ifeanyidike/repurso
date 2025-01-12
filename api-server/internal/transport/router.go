@@ -54,25 +54,26 @@ func (app *Application) Mount() http.Handler {
 	authConfig := middleware.NewAuth0Config()
 
 	v1 := router.Group("/v1")
+
 	{
-		upload := v1.Group("/upload")
+		upload := v1.Group("/upload").Use(middleware.Auth0Middleware(authConfig))
 		{
 			upload.POST("/video", appUpload.UploadVideo)
 			upload.POST("/child-audio", appUpload.UploadChildAudio)
 			upload.POST("/child-image", appUpload.UploadChildImage)
 			upload.POST("/child-video", appUpload.UploadChildVideo)
 		}
-		video := v1.Group("/video")
+		video := v1.Group("/video").Use(middleware.Auth0Middleware(authConfig))
 		{
 			video.PUT("/autosave", appUpload.AutoSave)
 			video.GET("/:videoId", appUser.GetVideo)
 			video.PUT("/transcript/generate/:videoId", appUpload.GenerateTranscript)
 			video.GET("/keymoments/:videoId/:moment", appUpload.GetKeyMoments)
 			video.GET("/detect-silence/:videoId", appUpload.DetectSilence)
-			video.Use(middleware.Auth0Middleware(authConfig)).GET("/samplejob", appUpload.TriggerSampleJob)
+			video.GET("/samplejob", appUpload.TriggerSampleJob)
 		}
 
-		projects := v1.Group("/projects")
+		projects := v1.Group("/projects").Use(middleware.Auth0Middleware(authConfig))
 		{
 			projects.POST("/create/:userId", appUser.CreateProject)
 			projects.GET("/:userId", appUser.GetProjects)

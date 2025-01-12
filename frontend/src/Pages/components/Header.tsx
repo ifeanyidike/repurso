@@ -81,7 +81,13 @@ const Header = () => {
                 size="large"
                 className="!bg-transparent !py-5 !px-5 !border-2 cursor-pointer !border-white !text-white !rounded-full hover:!bg-white hover:!text-teal-600 transition-all"
                 icon={<FiLogIn className="text-xl" />}
-                onClick={() => loginWithRedirect()}
+                onClick={() =>
+                  loginWithRedirect({
+                    authorizationParams: {
+                      screen_hint: "login",
+                    },
+                  })
+                }
               >
                 Login
               </Button>
@@ -90,6 +96,13 @@ const Header = () => {
                 type="primary"
                 className="!bg-gradient-to-r !py-5 !px-5 !from-teal-400 cursor-pointer !to-pink-500 !text-white !rounded-full hover:!scale-105 transition-all"
                 icon={<FiUserPlus className="text-xl" />}
+                onClick={() =>
+                  loginWithRedirect({
+                    authorizationParams: {
+                      screen_hint: "signup",
+                    },
+                  })
+                }
               >
                 Sign Up
               </Button>

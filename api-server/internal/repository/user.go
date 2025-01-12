@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/ifeanyidike/improv/internal/types"
@@ -77,8 +78,18 @@ func (repo *repo) GetProjects(ctx context.Context, userID string) (*[]types.Proj
 		return data, nil
 	}
 
-	rows, err := repo.db.QueryContext(ctx, "SELECT id, user_id, title, description, created_at, updated_at FROM projects WHERE user_id = $1", userID)
+	query := `
+	    SELECT 
+			id, user_id, title, description, created_at, updated_at
+		FROM projects
+		WHERE user_id = (
+		    SELECT id FROM users WHERE auth0_id = $1
+		)	
+		`
+
+	rows, err := repo.db.QueryContext(ctx, query, userID)
 	if err != nil {
+		log.Println("Error fetching projects", err)
 		return nil, err
 	}
 	defer rows.Close()

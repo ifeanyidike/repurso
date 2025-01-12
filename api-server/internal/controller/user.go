@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,7 @@ func (c *UserController) RegisterUser(ctx *gin.Context) {
 	err := c.UserService.RegisterUser(ctx, auth0_id, email, name, picture, email_verified)
 
 	if err != nil {
+		log.Printf("Error registering user: %s", err.Error())
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("could not register user: %v", err)})
 		return
 	}

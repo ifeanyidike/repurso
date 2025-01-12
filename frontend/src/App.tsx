@@ -1,7 +1,5 @@
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
-import { useEffect, useState } from "react";
-import { onRedirectCallback, router } from "./utils/routes";
-import { RouterProvider } from "react-router-dom";
+import { useEffect } from "react";
 import { userImpl } from "./service/User";
 
 function App() {

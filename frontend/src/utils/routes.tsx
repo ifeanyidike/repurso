@@ -5,6 +5,8 @@ import EditorView from "../Pages/EditorView";
 import { AppState, User } from "@auth0/auth0-react";
 import { createBrowserHistory } from "history";
 import Upload from "../Pages/upload";
+import Projects from "../Pages/Projects";
+import AuthenticationGuard from "@/Pages/components/AuthenticationGuard";
 export const history = createBrowserHistory();
 
 export const router = createBrowserRouter([
@@ -23,6 +25,10 @@ export const router = createBrowserRouter([
   {
     path: "/upload",
     element: <Upload />,
+  },
+  {
+    path: "/projects",
+    element: <AuthenticationGuard component={Projects} />,
   },
 ]);
 

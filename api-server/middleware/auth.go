@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -45,6 +46,7 @@ func Auth0Middleware(config *Auth0Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := extractToken(c.Request)
 		if token == "" {
+			log.Println("No token provided")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "No token provided",
 			})
@@ -52,7 +54,9 @@ func Auth0Middleware(config *Auth0Config) gin.HandlerFunc {
 		}
 
 		claims, err := validateToken(token, config)
+
 		if err != nil {
+			log.Println("Claims error ", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": err.Error(),
 			})
@@ -117,18 +121,21 @@ func validateToken(token string, config *Auth0Config) (*validator.ValidatedClaim
 		validator.WithAllowedClockSkew(time.Minute),
 	)
 	if err != nil {
+		log.Println("Failed to create validator", err)
 		return nil, fmt.Errorf("failed to create validator: %w", err)
 	}
 
 	// Validate the token
 	claims, err := jwtValidator.ValidateToken(context.Background(), token)
 	if err != nil {
+		log.Println("Failed to validate token", err)
 		return nil, fmt.Errorf("failed to validate token: %w", err)
 	}
 
 	// Type-assert claims to ValidatedClaims
 	validatedClaims, ok := claims.(*validator.ValidatedClaims)
 	if !ok {
+		log.Println("Invalid claims type")
 		return nil, fmt.Errorf("invalid claims type")
 	}
 
