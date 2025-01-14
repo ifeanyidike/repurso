@@ -6,6 +6,8 @@ import { router } from "./utils/routes";
 import { AppState, Auth0Provider, User } from "@auth0/auth0-react";
 import { createBrowserHistory } from "history";
 import App from "./App";
+import { Toaster } from "./components/ui/toaster";
+
 export const history = createBrowserHistory();
 
 const onRedirectCallback = (appState?: AppState, user?: User) => {
@@ -25,12 +27,15 @@ createRoot(document.getElementById("root")!).render(
       clientId={(import.meta as any).env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
         redirect_uri: window.location.origin,
+        audience: (import.meta as any).env.VITE_AUTH0_AUDIENCE,
+        scope: "read:messages",
       }}
       onRedirectCallback={onRedirectCallback}
       cacheLocation="localstorage"
       // useRefreshTokens={true}
       // useRefreshTokensFallback={false}
     >
+      <Toaster />
       <RouterProvider router={router}></RouterProvider>
       <App />
     </Auth0Provider>

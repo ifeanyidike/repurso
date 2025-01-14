@@ -17,19 +17,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import ListView from "./components/ListView";
-import ProjectCard from "./components/ProjectCard";
-import FiltersAndControls from "./components/FiltersAndControls";
-import NewProjectCard from "./components/NewProjectCard";
 
-const ProjectDashboard = () => {
+import { ProjectType } from "@/types/project";
+import { observer } from "mobx-react-lite";
+import { projectStore } from "@/store/ProjectStore";
+import NewProjectCard from "./components/NewProjectCard";
+import FiltersAndControls from "./components/FiltersAndControls";
+import ProjectCard from "./components/ProjectCard";
+import ListView from "./components/ListView";
+
+const ProjectDashboard = observer(() => {
   const [viewMode, setViewMode] = useState("grid");
   const [sortBy, setSortBy] = useState("recent");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [projectDetails, setProjectDetails] = useState<ProjectType>();
 
-  const { user, getIdTokenClaims } = useAuth0();
+  const { user, getIdTokenClaims, getAccessTokenSilently } = useAuth0();
+  // const [projects, setProjects] = useState([]);
 
   const categories = [
     { id: "all", label: "All Projects" },
@@ -38,34 +44,69 @@ const ProjectDashboard = () => {
     { id: "social", label: "Social Media" },
   ];
 
-  const projects = [
-    {
-      id: 1,
-      title: "Marketing Campaign Videos",
-      description: "Weekly video content for social media marketing campaigns",
-      thumbnail: "https://fakeimg.pl/400x250",
-      videoCount: 12,
-      category: "marketing",
-      progress: 75,
-      collaborators: 4,
-      dueDate: "2025-02-15",
-      status: "active",
-    },
-    {
-      id: 2,
-      title: "Product Tutorials",
-      description:
-        "Comprehensive step-by-step guide videos for new feature releases",
-      thumbnail:
-        "https://cdn.pixabay.com/photo/2022/10/18/17/00/night-7530755_1280.jpg",
-      videoCount: 8,
-      category: "tutorials",
-      progress: 45,
-      collaborators: 3,
-      dueDate: "2025-03-01",
-      status: "pending",
-    },
-  ];
+  useEffect(() => {
+    (async () => {
+      if (user) {
+        const token = await getAccessTokenSilently();
+
+        projectStore.getProjects(user.sub!, token);
+      }
+    })();
+  }, [user?.sub]);
+  // console.log("projects", projectStore.projects);
+
+  // const projects = [
+  //   {
+  //     id: 1,
+  //     title: "Marketing Campaign Videos",
+  //     description: "Weekly video content for social media marketing campaigns",
+  //     thumbnail: "https://fakeimg.pl/400x250",
+  //     videoCount: 12,
+  //     category: "marketing",
+  //     progress: 75,
+  //     collaborators: 4,
+  //     dueDate: "2025-02-15",
+  //     status: "active",
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Product Tutorials",
+  //     description:
+  //       "Comprehensive step-by-step guide videos for new feature releases",
+  //     thumbnail:
+  //       "https://cdn.pixabay.com/photo/2022/10/18/17/00/night-7530755_1280.jpg",
+  //     videoCount: 8,
+  //     category: "tutorials",
+  //     progress: 45,
+  //     collaborators: 3,
+  //     dueDate: "2025-03-01",
+  //     status: "pending",
+  //   },
+  // ];
+
+  // const _projects = [
+  //   // {
+  //   //   id: 1,
+  //   //   title: "Marketing Campaign Videos",
+  //   //   description: "Weekly video content for social media marketing campaigns",
+  //   //   category: "marketing",
+  //   //   progress: 75,
+  //   //   collaborators: 4,
+  //   //   dueDate: "2025-02-15",
+  //   //   status: "active",
+  //   // },
+  //   // {
+  //   //   id: 2,
+  //   //   title: "Product Tutorials",
+  //   //   description:
+  //   //     "Comprehensive step-by-step guide videos for new feature releases",
+  //   //   category: "tutorials",
+  //   //   progress: 45,
+  //   //   collaborators: 3,
+  //   //   dueDate: "2025-03-01",
+  //   //   status: "pending",
+  //   // },
+  // ];
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -125,12 +166,14 @@ const ProjectDashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-12">
-        {viewMode === "grid" && (
-          <NewProjectCard
-            showNewProjectDialog={showNewProjectDialog}
-            setShowNewProjectDialog={setShowNewProjectDialog}
-          />
-        )}
+        <NewProjectCard
+          showNewProjectDialog={showNewProjectDialog}
+          setShowNewProjectDialog={setShowNewProjectDialog}
+          projectDetails={projectDetails}
+          setProjectDetails={setProjectDetails}
+          projectsExist={projectStore.projects.length > 0}
+        />
+
         <div
           className={
             viewMode === "grid"
@@ -141,7 +184,7 @@ const ProjectDashboard = () => {
           {/* New Project Card - Only show in grid view */}
 
           {/* Project Cards */}
-          {projects.map((project) => (
+          {projectStore.projects.map((project: any) => (
             <div key={project.id}>
               {viewMode === "grid" ? (
                 <ProjectCard project={project} />
@@ -153,29 +196,9 @@ const ProjectDashboard = () => {
         </div>
 
         {/* Empty State */}
-        {projects.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ImageIcon className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              No projects found
-            </h3>
-            <p className="text-sm text-gray-500 mt-2">
-              Get started by creating your first project
-            </p>
-            <Button
-              className="mt-6"
-              onClick={() => setShowNewProjectDialog(true)}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create Project
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
-};
+});
 
 export default ProjectDashboard;

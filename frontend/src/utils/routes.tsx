@@ -1,12 +1,13 @@
 import { createBrowserRouter } from "react-router-dom";
-import Welcome from "../Pages/welcome";
-import ConfirmationScreen from "../Pages/confirmation";
-import EditorView from "../Pages/EditorView";
+import Welcome from "../pages/welcome";
+import ConfirmationScreen from "../pages/confirmation";
+import EditorView from "../pages/EditorView";
 import { AppState, User } from "@auth0/auth0-react";
 import { createBrowserHistory } from "history";
-import Upload from "../Pages/upload";
-import Projects from "../Pages/Projects";
-import AuthenticationGuard from "@/Pages/components/AuthenticationGuard";
+import Upload from "../pages/upload";
+import Projects from "../pages/projects";
+import AuthenticationGuard from "@/pages/components/AuthenticationGuard";
+import Videos from "../pages/videos";
 export const history = createBrowserHistory();
 
 export const router = createBrowserRouter([
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
   {
     path: "/projects",
     element: <AuthenticationGuard component={Projects} />,
+  },
+  {
+    path: "/videos/:id",
+    element: <AuthenticationGuard component={Videos} />,
   },
 ]);
 

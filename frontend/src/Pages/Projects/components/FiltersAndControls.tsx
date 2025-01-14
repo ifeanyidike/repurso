@@ -1,44 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
+import React from "react";
 import {
-  Plus,
-  Download,
-  Share2,
-  MoreHorizontal,
-  Image as ImageIcon,
-  Search,
   Grid,
   List,
   Clock,
   TrendingUp,
   Filter,
-  Users,
-  Calendar,
   ChevronDown,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Folder, CheckCircle } from "react-feather";
-import { motion } from "framer-motion";
-import { BarChart2 } from "react-feather";
-
 const FiltersAndControls = ({
   viewMode,
   setViewMode,
