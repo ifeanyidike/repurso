@@ -76,7 +76,7 @@ func (app *Application) Mount() http.Handler {
 		projects := v1.Group("/projects").Use(middleware.Auth0Middleware(authConfig))
 		{
 			projects.POST("/create/:userId", appUser.CreateProject)
-			projects.GET("/:userId", appUser.GetProjects)
+			projects.GET("/:user_id", appUser.GetProjects)
 			projects.GET("/videos/:id", appUser.GetVideos)
 		}
 

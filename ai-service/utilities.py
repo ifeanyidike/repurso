@@ -6,7 +6,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 import torch
 import re
-import spacy
+# import spacy
 import whisper
 import uuid
 import json

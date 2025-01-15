@@ -51,12 +51,28 @@ func (c *repo) CreateUser(ctx context.Context, auth0_id, email, name, picture st
 
 func (repo *repo) CreateProject(ctx context.Context, params types.ProjectInsertParams) (string, error) {
 	var id string
+
+	user, err := repo.FindUserByAuth0ID(ctx, params.UserID)
+	if err != nil {
+		log.Println("error:", err)
+		return "", err
+	}
+	if user == nil {
+		return "", fmt.Errorf("user not found")
+	}
+
 	query := `
-	    INSERT INTO projects (user_id, title, description)
-		VALUES ($1, $2, $3)
+	    INSERT INTO projects (user_id, title, description, category, due_date)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id`
 
-	err := repo.db.QueryRowContext(ctx, query, params.UserID, params.Title, params.Description).Scan(&id)
+	err = repo.db.QueryRowContext(ctx, query,
+		user.ID,
+		params.Title,
+		params.Description,
+		params.Category,
+		params.DueDate).
+		Scan(&id)
 
 	if err != nil {
 		return "", err
@@ -72,15 +88,17 @@ func (repo *repo) GetProjects(ctx context.Context, userID string) (*[]types.Proj
 	cacheKey := fmt.Sprintf("projects:%s", userID)
 	data, err := fetchFromCache[[]types.ProjectGetParams](ctx, repo.redis, cacheKey)
 	if err != nil {
+		log.Println("Got nil data and err,", err)
 		return nil, err
 	}
-	if data != nil {
+	if data != nil && len(*data) > 0 {
+		log.Println("Got nil data", len(*data))
 		return data, nil
 	}
 
 	query := `
 	    SELECT 
-			id, user_id, title, description, created_at, updated_at
+			id, user_id, title, description, category, due_date, created_at, updated_at
 		FROM projects
 		WHERE user_id = (
 		    SELECT id FROM users WHERE auth0_id = $1
@@ -97,13 +115,22 @@ func (repo *repo) GetProjects(ctx context.Context, userID string) (*[]types.Proj
 	var projects []types.ProjectGetParams
 	for rows.Next() {
 		var project types.ProjectGetParams
-		err := rows.Scan(&project.ID, &project.UserID, &project.Title, &project.Description)
+		err := rows.Scan(
+			&project.ID,
+			&project.UserID,
+			&project.Title,
+			&project.Description,
+			&project.Category,
+			&project.DueDate,
+			&project.CreatedAt,
+			&project.UpdatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
 		projects = append(projects, project)
 	}
 	storeToCache(ctx, repo.redis, projects, cacheKey)
-
+	log.Println("projects", projects)
 	return &projects, nil
 }

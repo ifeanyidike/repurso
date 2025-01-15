@@ -16,13 +16,18 @@ type ProjectInsertParams struct {
 	UserID      string
 	Title       string
 	Description string
+	Category    string
+	DueDate     time.Time
 }
 
 type ProjectGetParams struct {
 	ID          string    `json:"id"`
-	UserID      string    `json:"user_id`
+	UserID      string    `json:"user_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Category    string    `json:"category"`
+	DueDate     time.Time `json:"due_date"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

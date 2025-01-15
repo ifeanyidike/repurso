@@ -41,7 +41,7 @@ type VideoInsertParams struct {
 
 type VideosGetParams struct {
 	ID          string    `json:"id"`
-	VideoURL    string    `json:"video_url`
+	VideoURL    string    `json:"video_url"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Duration    float32   `json:"duration"`
@@ -77,7 +77,7 @@ type VideoGetParams struct {
 	ChildAudios     []ChildAudio   `json:"child_audios"`
 	ChildImages     []ChildImage   `json:"child_images"`
 	ChildVideos     []ChildVideo   `json:"child_videos"`
-	FabricSubtitle  FabricSubtitle `json:"fabric_subtitle`
+	FabricSubtitle  FabricSubtitle `json:"fabric_subtitle"`
 	LowerThird      []LowerThird   `json:"lower_third"`
 }
 

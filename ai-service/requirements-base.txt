@@ -17,7 +17,7 @@ grpcio
 grpcio-tools
 protobuf
 boto3
-spacy==3.8.3
+# spacy==3.8.3
 accelerate
 langchain
 openai

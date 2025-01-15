@@ -1,10 +1,10 @@
 CREATE TYPE video_format AS ENUM ('mp4', 'mov', 'avi', 'mkv', 'mpeg', 'ogv', '3pg', 'webm', 'wmv', 'flv');
 CREATE TYPE audio_format AS ENUM ('mp3', 'wav', 'aac', 'flac', 'ogg', 'm4a', 'wma');
 CREATE TYPE image_format AS ENUM ('jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg', 'heic', 'avif');
-
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS "projects" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" BIGINT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "title" TEXT,
   "description" TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS "projects" (
 );
 
 CREATE TABLE IF NOT EXISTS "videos" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "project_id" UUID NOT NULL REFERENCES "projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "title" TEXT,
   "description" TEXT,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS "videos" (
 );
 
 CREATE TABLE IF NOT EXISTS "child_videos" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "parent_video_id" UUID NOT NULL REFERENCES "videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "title" TEXT,
   "description" TEXT,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS "child_videos" (
 );
 
 CREATE TABLE IF NOT EXISTS "child_audios" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "parent_video_id" UUID NOT NULL REFERENCES "videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "title" TEXT,
   "description" TEXT,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS "child_audios" (
 );
 
 CREATE TABLE IF NOT EXISTS "child_images" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "parent_video_id" UUID NOT NULL REFERENCES "videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "title" TEXT,
   "description" TEXT,
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS "child_images" (
 );
 
 CREATE TABLE IF NOT EXISTS "fabric_images" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "image_id" UUID NOT NULL REFERENCES "child_images" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "time" FLOAT,
   "duration" FLOAT,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS "fabric_images" (
 );
 
 CREATE TABLE IF NOT EXISTS "fabric_child_videos" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "video_id" UUID NOT NULL REFERENCES "child_videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "time" FLOAT,
   "duration" FLOAT,
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS "fabric_child_videos" (
 );
 
 CREATE TABLE IF NOT EXISTS "fabric_videos" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "video_id" UUID NOT NULL REFERENCES "videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "time" FLOAT DEFAULT 0,
   "duration" FLOAT,
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS "fabric_videos" (
 );
 
 CREATE TABLE IF NOT EXISTS "fabric_texts" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "parent_video_id" UUID NOT NULL REFERENCES "videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "properties" JSONB,
   "time" FLOAT,
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS "fabric_texts" (
 );
 
 CREATE TABLE IF NOT EXISTS "fabric_subtitles" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "parent_video_id" UUID NOT NULL REFERENCES "videos" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
   "properties" JSONB,
   "time" FLOAT DEFAULT 0,

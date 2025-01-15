@@ -51,8 +51,13 @@ func (c *UserController) RegisterUser(ctx *gin.Context) {
 
 func (c *UserController) GetProjects(ctx *gin.Context) {
 	userId := ctx.Param("user_id")
+	if userId == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
 	projects, err := c.UserService.GetProjects(ctx, userId)
 	if err != nil {
+		log.Println("error getting projects", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not get projects"})
 		return
 	}
@@ -91,6 +96,7 @@ func (u *UserController) CreateProject(ctx *gin.Context) {
 
 	projectId, err := u.UserService.CreateProject(ctx, p)
 	if err != nil {
+		log.Printf("Error creating project: %s", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not create project"})
 		return
 	}

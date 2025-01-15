@@ -21,10 +21,11 @@ type CustomClaims struct {
 }
 
 type Auth0Config struct {
-	Issuer   string
-	Audience string
-	Domain   string
-	ClientID string
+	Issuer             string
+	Audience           string
+	ManagementAudience string
+	Domain             string
+	ClientID           string
 }
 
 func (c CustomClaims) Validate(ctx context.Context) error {
@@ -34,10 +35,11 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 // NewAuth0Config creates a new Auth0 config from environment variables
 func NewAuth0Config() *Auth0Config {
 	return &Auth0Config{
-		Issuer:   os.Getenv("AUTH0_ISSUER"),
-		Audience: os.Getenv("AUTH0_MANGEMENT_AUDIENCE"),
-		Domain:   os.Getenv("AUTH0_DOMAIN"),
-		ClientID: os.Getenv("AUTH0_CLIENT_ID"),
+		Issuer:             os.Getenv("AUTH0_ISSUER"),
+		ManagementAudience: os.Getenv("AUTH0_MANGEMENT_AUDIENCE"),
+		Audience:           os.Getenv("AUTH0_AUDIENCE"),
+		Domain:             os.Getenv("AUTH0_DOMAIN"),
+		ClientID:           os.Getenv("AUTH0_CLIENT_ID"),
 	}
 }
 
@@ -112,7 +114,7 @@ func validateToken(token string, config *Auth0Config) (*validator.ValidatedClaim
 		provider.KeyFunc,
 		validator.RS256,
 		config.Issuer,
-		[]string{config.ClientID, config.Audience},
+		[]string{config.Audience, config.ManagementAudience},
 		validator.WithCustomClaims(
 			func() validator.CustomClaims {
 				return &CustomClaims{}
