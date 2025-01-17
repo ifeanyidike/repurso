@@ -34,7 +34,7 @@ const ProjectDashboard = observer(() => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [projectDetails, setProjectDetails] = useState<ProjectType>();
 
-  const { user, getIdTokenClaims, getAccessTokenSilently } = useAuth0();
+  const { user, getAccessTokenSilently } = useAuth0();
   // const [projects, setProjects] = useState([]);
 
   const categories = [
@@ -49,7 +49,7 @@ const ProjectDashboard = observer(() => {
       if (user) {
         const token = await getAccessTokenSilently();
 
-        projectStore.getProjects(user.sub!, token);
+        await projectStore.getProjects(user.sub!, token);
       }
     })();
   }, [user?.sub]);

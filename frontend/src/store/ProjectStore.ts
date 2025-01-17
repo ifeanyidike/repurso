@@ -6,6 +6,7 @@ export class ProjectStore {
   private SERVER: string;
   public projects: ProjectType[] = [];
   public project: ProjectType | undefined = undefined;
+  public videos: any[] = [];
 
   constructor() {
     const env = (import.meta as any).env as any;
@@ -14,17 +15,18 @@ export class ProjectStore {
     makeAutoObservable(this);
   }
 
-  public getProject(id: string) {
-    console.log("projects", this.projects);
+  public async getProject(id: string, auth0_id: string, token: string) {
+    // this.project = this.projects.find((p) => p.id === id);
+    if (!this.projects?.length) {
+      await this.getProjects(auth0_id, token);
+    }
     this.project = this.projects.find((p) => p.id === id);
-  }
-
-  public getProjects(userID: string, token: string) {
+    console.log("project: ", this.project, this.projects);
     const self = this;
-    const fetchProjects = flow(function* () {
+    const fetchVideos = flow(function* () {
       try {
         const response = yield axios.get(
-          `${self.SERVER}/v1/projects/${userID}`,
+          `${self.SERVER}/v1/projects/videos/${id}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -34,24 +36,43 @@ export class ProjectStore {
         );
         return response.data; // Return the fetched data
       } catch (error) {
-        console.error("Failed to fetch projects:", error);
+        console.error("Failed to fetch videos:", error);
         throw error; // Handle the error or propagate it
       }
     });
     flow(function* () {
       try {
-        const data = yield fetchProjects();
-        self.projects = data?.projects?.map((p: any) => ({
+        const data = yield fetchVideos();
+        self.videos = data?.videos ?? [];
+      } catch (error) {
+        self.videos = [];
+      }
+    })();
+  }
+
+  public async getProjects(userID: string, token: string) {
+    try {
+      const response = await axios.get(`${this.SERVER}/v1/projects/${userID}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Projects fetched:", response.data);
+
+      this.projects =
+        response.data?.projects?.map((p: any) => ({
           ...p,
           collaborators: 4,
           dueDate: p.due_date,
           status: "active",
           progress: 0,
-        }));
-      } catch (error) {
-        self.projects = [];
-      }
-    })();
+        })) || [];
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+      this.projects = [];
+    }
   }
 
   public addProject = flow(function* (
